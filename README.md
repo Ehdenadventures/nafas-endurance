@@ -34,7 +34,7 @@ Without Supabase the site uses the starting catalog in `src/lib/seed.json` and k
 
 ## Going live (one time)
 
-1. **Supabase** (free): create a project at supabase.com. In SQL Editor, run `supabase/schema.sql`,
+1. **Supabase** (free): create a project at supabase.com. In SQL Editor, paste and run `supabase/setup-all.sql` (everything in one go). Or run them one by one: `supabase/schema.sql`,
    then `supabase/migrations/002_stock.sql`, `003_colours.sql` (flavours) and `004_posts.sql`
    (Instagram posts), then `supabase/seed.sql` to load the starting catalog. Copy the project URL and the
    `service_role` key from Project Settings > API.
