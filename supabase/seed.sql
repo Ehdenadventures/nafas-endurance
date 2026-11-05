@@ -1,0 +1,8 @@
+-- Starting catalog for Nafas Endurance. Safe to run once after schema.sql.
+
+insert into categories (slug,name,description,sort,active) values ('ultimate-italia','Ultimate Italia','Italian sports nutrition: energy gels and endurance fuel for running, cycling and triathlon.',0,true) on conflict (slug) do nothing;
+insert into categories (slug,name,description,parent_id,sort,active) values ('ultimate-italia-gels','Energy gels','',(select id from categories where slug='ultimate-italia'),0,true) on conflict (slug) do nothing;
+
+insert into products (slug,name,description,price,category_id,active,personalizable,sort,media) values ('ultimate-enduro-gel','Ultimate Enduro Gel','Energy gel for long efforts. Check the pack for flavour, size and nutrition facts.',3,(select id from categories where slug='ultimate-italia-gels'),true,false,0,'[]'::jsonb) on conflict (slug) do nothing;
+insert into products (slug,name,description,price,category_id,active,personalizable,sort,media) values ('ultimate-energel','Ultimate Energel','Quick energy gel for training and race day. Check the pack for flavour, size and nutrition facts.',3,(select id from categories where slug='ultimate-italia-gels'),true,false,1,'[]'::jsonb) on conflict (slug) do nothing;
+insert into products (slug,name,description,price,category_id,active,personalizable,sort,media) values ('ultimate-ultra-energy-gel','Ultimate Ultra Energy Gel','Energy gel for ultra distances. Check the pack for flavour, size and nutrition facts.',3,(select id from categories where slug='ultimate-italia-gels'),true,false,2,'[]'::jsonb) on conflict (slug) do nothing;

@@ -1,0 +1,55 @@
+{
+ "categories": [
+  {
+   "slug": "ultimate-italia",
+   "name": "Ultimate Italia",
+   "parent": null,
+   "description": "Italian sports nutrition: energy gels and endurance fuel for running, cycling and triathlon.",
+   "sort": 0,
+   "active": true
+  },
+  {
+   "slug": "ultimate-italia-gels",
+   "name": "Energy gels",
+   "parent": "ultimate-italia",
+   "description": "",
+   "sort": 0,
+   "active": true
+  }
+ ],
+ "products": [
+  {
+   "slug": "ultimate-enduro-gel",
+   "name": "Ultimate Enduro Gel",
+   "description": "Energy gel for long efforts. Check the pack for flavour, size and nutrition facts.",
+   "price": 3,
+   "category": "ultimate-italia-gels",
+   "active": true,
+   "personalizable": false,
+   "sort": 0,
+   "media": []
+  },
+  {
+   "slug": "ultimate-energel",
+   "name": "Ultimate Energel",
+   "description": "Quick energy gel for training and race day. Check the pack for flavour, size and nutrition facts.",
+   "price": 3,
+   "category": "ultimate-italia-gels",
+   "active": true,
+   "personalizable": false,
+   "sort": 1,
+   "media": []
+  },
+  {
+   "slug": "ultimate-ultra-energy-gel",
+   "name": "Ultimate Ultra Energy Gel",
+   "description": "Energy gel for ultra distances. Check the pack for flavour, size and nutrition facts.",
+   "price": 3,
+   "category": "ultimate-italia-gels",
+   "active": true,
+   "personalizable": false,
+   "sort": 2,
+   "media": []
+  }
+ ]
+}
