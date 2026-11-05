@@ -106,7 +106,7 @@ export async function sendToWakilni(order: Order): Promise<string> {
       note: `Nafas Endurance order #${order.number}${order.notes ? ` - ${order.notes}` : ""}`.slice(0, 250),
       car_needed: false,
       is_express: false,
-      packages: [{ quantity: 1, type_id: units > 3 ? 60 : 59, name: `Order #${order.number}`, sku: `3DPL-${order.number}` }],
+      packages: [{ quantity: 1, type_id: units > 3 ? 60 : 59, name: `Order #${order.number}`, sku: `NAF-${order.number}` }],
     },
     token,
   );
