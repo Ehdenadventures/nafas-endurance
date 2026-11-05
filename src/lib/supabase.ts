@@ -7,7 +7,7 @@ let client: SupabaseClient | null = null;
 export function db(): SupabaseClient | null {
   // Values pasted into Vercel often carry spaces, line breaks, quotes, /rest/v1 or a missing https://.
   const clean = (v?: string) => v?.replace(/\s+/g, "").replace(/^["']|["']$/g, "");
-  let url = clean(process.env.SUPABASE_URL);
+  let url = clean(process.env.SUPABASE_URL)?.replace(/^https?:\/\/(?=eyJ|sb_)/, "");
   let key = clean(process.env.SUPABASE_SERVICE_ROLE_KEY);
   const looksLikeKey = (v?: string) => !!v && /^(eyJ|sb_)/.test(v);
   // If the two values were pasted into each other's boxes, swap them back.
