@@ -4,7 +4,7 @@ const env = (k: string, d = "") => process.env[k] || d;
 export const site = {
   name: "Nafas Endurance",
   tagline: "Energy gels and race fuel for endurance athletes",
-  url: env("NEXT_PUBLIC_SITE_URL", "https://nafas-endurance.vercel.app"),
+  url: env("NEXT_PUBLIC_SITE_URL", "https://nafasendurance.com"),
   // WhatsApp number in international format without + or spaces, e.g. 96170123456
   whatsapp: env("NEXT_PUBLIC_WHATSAPP_NUMBER"),
   instagram: env("NEXT_PUBLIC_INSTAGRAM", "nafas.endurance"),
