@@ -95,3 +95,8 @@ body {
 @keyframes brand-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .brand-track { animation: brand-scroll 30s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .brand-track { animation: none; } }
+
+/* Header dropdowns: open on hover, or when a link inside has keyboard focus. */
+.menu-item > .menu-drop { display: none; }
+.menu-item:hover > .menu-drop,
+.menu-item:focus-within > .menu-drop { display: block; }
