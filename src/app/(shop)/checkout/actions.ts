@@ -48,10 +48,10 @@ export async function placeOrder(input: CheckoutInput): Promise<CheckoutResult> 
       pack = p.packages.find((x) => x.name === clean(it.package, 40));
       if (!pack) return { ok: false, error: `Please choose a packaging for "${p.name}". Remove it from your cart and add it again.` };
     }
-    const label = colour ? `${p.name} (${colour})` : p.name;
-    const left = stockFor(p, colour);
-    if (left !== null && pack && left < pack.units * qty)
-      return { ok: false, error: left < pack.units ? `Sorry, "${label}" doesn't have enough left for a ${pack.name}. Please pick a smaller packaging.` : `Sorry, only ${left} left of "${label}". Please lower the quantity in your cart.` };
+    const label = [p.name, colour, pack?.name].filter(Boolean).join(" · ");
+    const left = stockFor(p, colour, pack?.name);
+    if (left !== null && left > 0 && left < qty)
+      return { ok: false, error: `Sorry, only ${left} left of "${label}". Please lower the quantity in your cart.` };
     if (left === 0) return { ok: false, error: `Sorry, "${label}" is sold out. Please remove it from your cart.` };
     if (left !== null) tracksStock = true;
     items.push({

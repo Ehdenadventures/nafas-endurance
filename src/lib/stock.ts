@@ -3,15 +3,26 @@ import { FEATURES, type Detail, type FeatureKey, type Package, type Product, typ
 /** Safe to use in the browser and on the server. null = no limit. */
 export const hasColours = (p: Pick<Product, "variants">) => p.variants.length > 0;
 
-export function stockFor(p: Pick<Product, "stock" | "variants">, colour?: string): number | null {
-  if (hasColours(p)) {
-    const v = p.variants.find((x) => x.name === colour);
-    return v ? v.stock : 0;
+type Stocked = Pick<Product, "stock" | "variants" | "packages">;
+
+/** Stock of one packaging in one flavour. null = no limit. */
+export const packStock = (pk: Package, colour = ""): number | null => pk.stock?.[colour] ?? null;
+
+/** How many are left of a flavour (and packaging, when the product has packaging). null = no limit. */
+export function stockFor(p: Stocked, colour?: string, pack?: string): number | null {
+  if (hasColours(p) && !p.variants.some((x) => x.name === colour)) return 0;
+  if (p.packages.length) {
+    const pk = p.packages.find((x) => x.name === pack);
+    return pk ? packStock(pk, hasColours(p) ? colour : "") : 0;
   }
+  if (hasColours(p)) return p.variants.find((x) => x.name === colour)!.stock;
   return p.stock;
 }
 
-export function isSoldOut(p: Pick<Product, "stock" | "variants">) {
+/** Nothing left in any flavour or packaging. */
+export function isSoldOut(p: Stocked) {
+  const flavours = hasColours(p) ? p.variants.map((v) => v.name) : [""];
+  if (p.packages.length) return p.packages.every((pk) => flavours.every((f) => packStock(pk, f) === 0));
   return hasColours(p) ? p.variants.every((v) => v.stock === 0) : p.stock === 0;
 }
 
@@ -46,7 +57,14 @@ export function cleanPackages(raw: unknown): Package[] {
     if (r?.images && typeof r.images === "object")
       for (const [k, v] of Object.entries(r.images as Record<string, unknown>))
         if (typeof v === "string" && /^https?:\/\//.test(v)) images[k.slice(0, 40)] = v;
-    out.push(Object.keys(images).length ? { name, price, units, images } : { name, price, units });
+    const stock: Record<string, number | null> = {};
+    if (r?.stock && typeof r.stock === "object")
+      for (const [k, v] of Object.entries(r.stock as Record<string, unknown>))
+        if (v !== null && v !== undefined && v !== "") stock[k.slice(0, 40)] = Math.max(0, Math.floor(Number(v)) || 0);
+    const pk: Package = { name, price, units };
+    if (Object.keys(images).length) pk.images = images;
+    if (Object.keys(stock).length) pk.stock = stock;
+    out.push(pk);
   }
   return out.slice(0, 10);
 }

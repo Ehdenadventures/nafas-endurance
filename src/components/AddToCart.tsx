@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { Package, Variant } from "@/lib/types";
 import { money } from "@/lib/site";
-import { photoFor } from "@/lib/stock";
+import { packStock, photoFor } from "@/lib/stock";
 import { useCart } from "./CartProvider";
 import { useColour } from "./ColourContext";
 
@@ -27,12 +27,16 @@ export default function AddToCart(p: Props) {
   const localPack = useState(p.packages[0]?.name ?? "");
   const [packName, setPackName] = shared ? [shared.pack, shared.setPack] : localPack;
   const pack = p.packages.find((x) => x.name === packName);
-  const units = pack?.units ?? 1;
   const price = pack ? pack.price : p.price;
 
   const chosen = p.colours.find((c) => c.name === colour);
-  const left = p.colours.length ? (chosen ? chosen.stock : 0) : p.stock;
-  const max = Math.min(99, left === null ? 99 : Math.floor(left / units));
+  const flavourKey = p.colours.length ? colour : "";
+  // With packaging, each packaging has its own stock per flavour.
+  const leftFor = (pk: Package | undefined, flav: string) =>
+    p.packages.length ? (pk ? packStock(pk, flav) : 0) : p.colours.length ? (p.colours.find((c) => c.name === flav)?.stock ?? 0) : p.stock;
+  const flavourOut = (flav: string) => (p.packages.length ? p.packages.every((pk) => packStock(pk, flav) === 0) : p.colours.find((c) => c.name === flav)?.stock === 0);
+  const left = p.colours.length && !chosen ? 0 : leftFor(pack, flavourKey);
+  const max = Math.min(99, left ?? 99);
   const needsText = p.personalizable && !text.trim();
   const blocked = needsText || (p.colours.length > 0 && !chosen) || (p.packages.length > 0 && !pack) || max < 1;
 
@@ -45,7 +49,7 @@ export default function AddToCart(p: Props) {
           </legend>
           <div className="flex flex-wrap gap-2">
             {p.colours.map((c) => {
-              const out = c.stock === 0;
+              const out = flavourOut(c.name);
               const on = c.name === colour;
               return (
                 <button
@@ -54,7 +58,15 @@ export default function AddToCart(p: Props) {
                   disabled={out}
                   aria-pressed={on}
                   title={out ? `${c.name} (sold out)` : c.name}
-                  onClick={() => { setColour(c.name); setQty((q) => Math.max(1, Math.min(q, Math.min(99, c.stock === null ? 99 : Math.floor(c.stock / units))))); setAdded(false); }}
+                  onClick={() => {
+                    setColour(c.name);
+                    // Keep the packaging if it's in stock in this flavour, otherwise switch to one that is.
+                    const pk = pack && leftFor(pack, c.name) !== 0 ? pack : p.packages.find((x) => packStock(x, c.name) !== 0);
+                    if (pk && pk !== pack) setPackName(pk.name);
+                    const l = leftFor(pk, c.name);
+                    setQty((q) => Math.max(1, Math.min(q, l ?? 99)));
+                    setAdded(false);
+                  }}
                   className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition ${on ? "border-accent ring-2 ring-accent" : "border-line hover:border-ink-3"} ${out ? "cursor-not-allowed opacity-45 line-through" : ""}`}
                 >
                   <span className="h-5 w-5 rounded-full border border-line" style={{ background: c.hex }} />
@@ -63,7 +75,7 @@ export default function AddToCart(p: Props) {
               );
             })}
           </div>
-          {chosen && chosen.stock !== null && chosen.stock > 0 && chosen.stock <= 5 && (
+          {!p.packages.length && chosen && chosen.stock !== null && chosen.stock > 0 && chosen.stock <= 5 && (
             <p className="mt-2 text-sm font-semibold text-bad">Only {chosen.stock} left in {chosen.name}</p>
           )}
         </fieldset>
@@ -74,22 +86,25 @@ export default function AddToCart(p: Props) {
           <div className="flex flex-wrap gap-2">
             {p.packages.map((x) => {
               const on = x.name === packName;
-              const short = left !== null && left < x.units;
+              const short = leftFor(x, flavourKey) === 0;
               return (
                 <button
                   key={x.name}
                   type="button"
                   disabled={short}
                   aria-pressed={on}
-                  onClick={() => { setPackName(x.name); setQty((q) => Math.max(1, Math.min(q, left === null ? 99 : Math.floor(left / x.units)))); setAdded(false); }}
+                  onClick={() => { setPackName(x.name); setQty((q) => Math.max(1, Math.min(q, leftFor(x, flavourKey) ?? 99))); setAdded(false); }}
                   className={`rounded-xl border px-3 py-2 text-left text-sm transition ${on ? "border-accent ring-2 ring-accent" : "border-line hover:border-ink-3"} ${short ? "cursor-not-allowed opacity-45" : ""}`}
                 >
                   <span className="block font-semibold">{x.name}</span>
-                  <span className="block text-ink-2">{money(x.price)}{x.units > 1 && <span className="text-xs text-ink-3"> · {money(x.price / x.units)} each</span>}</span>
+                  <span className="block text-ink-2">{short ? "Sold out" : <>{money(x.price)}{x.units > 1 && <span className="text-xs text-ink-3"> · {money(x.price / x.units)} each</span>}</>}</span>
                 </button>
               );
             })}
           </div>
+          {pack && left !== null && left > 0 && left <= 5 && (
+            <p className="mt-2 text-sm font-semibold text-bad">Only {left} left{colour ? ` in ${colour}` : ""} ({pack.name})</p>
+          )}
         </fieldset>
       )}
       {p.packages.length > 0 && <p className="text-2xl font-bold text-accent" aria-live="polite">{money(price * qty)}</p>}

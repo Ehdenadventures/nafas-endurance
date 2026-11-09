@@ -8,7 +8,7 @@ import { ColourProvider } from "@/components/ColourContext";
 import { WhatsAppIcon } from "@/components/Icons";
 import { categoryPath, categoryTree, getCategories, getProductBySlug, getProducts } from "@/lib/data";
 import { money, site, whatsappLink } from "@/lib/site";
-import { isSoldOut, priceRange } from "@/lib/stock";
+import { isSoldOut, packStock, priceRange, stockFor } from "@/lib/stock";
 import ProductTabs from "@/components/ProductTabs";
 import { Rich, plainText } from "@/components/RichText";
 import FeatureBadges from "@/components/FeatureBadges";
@@ -35,6 +35,9 @@ export default async function ProductPage({ params }: Props) {
     ...all.filter((x) => x.category_id !== p.category_id && x.category_id && brand.has(x.category_id)),
   ].slice(0, 4);
   const [low, high] = priceRange(p);
+  // Start on a flavour and packaging that are in stock.
+  const firstColour = p.variants.find((v) => p.packages.length ? p.packages.some((pk) => packStock(pk, v.name) !== 0) : v.stock !== 0)?.name ?? "";
+  const firstPack = p.packages.find((pk) => stockFor(p, firstColour, pk.name) !== 0)?.name ?? p.packages[0]?.name ?? "";
   const ask = whatsappLink(`Hi ${site.name}, I have a question about "${p.name}" (${site.url}/p/${p.slug})`);
 
   return (
@@ -43,7 +46,7 @@ export default async function ProductPage({ params }: Props) {
         <Link href="/" className="hover:text-ink">Home</Link>
         {path.map((c) => <span key={c.id}> / <Link href={`/c/${c.slug}`} className="hover:text-ink">{c.name}</Link></span>)}
       </nav>
-      <ColourProvider initial={p.variants.find((v) => v.stock !== 0)?.name ?? ""} initialPack={p.packages[0]?.name ?? ""}>
+      <ColourProvider initial={firstColour} initialPack={firstPack}>
       <div className="mt-4 grid gap-8 md:grid-cols-2">
         <ProductMedia media={p.media} name={p.name} product={p} />
         <div>
