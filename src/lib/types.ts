@@ -3,6 +3,25 @@ export type Media = { type: "image" | "video"; url: string };
 /** A flavour of a product. stock null = no limit. */
 export type Variant = { name: string; hex: string; stock: number | null; /** photo shown when this colour is picked */ image?: string };
 
+/** A way the product is sold, e.g. "1 gel" or "Box of 24", with its own price.
+ *  units = how many single pieces it takes from stock. */
+export type Package = { name: string; price: number; units: number };
+
+/** One tab of product information, e.g. Ingredients or Warnings. */
+export type Detail = { title: string; body: string };
+
+/** Badges shown on the product page. */
+export const FEATURES = [
+  { key: "gluten_free", label: "Gluten free" },
+  { key: "vegan", label: "Vegan" },
+  { key: "lactose_free", label: "Lactose free" },
+  { key: "low_sugar", label: "Low sugar" },
+] as const;
+export type FeatureKey = (typeof FEATURES)[number]["key"];
+
+/** Tabs a new product starts with (empty ones are hidden on the shop). */
+export const DEFAULT_DETAILS = ["Description", "Ingredients", "Nutritional values", "What science says", "Claims", "Warnings"];
+
 export type Category = {
   id: string;
   slug: string;
@@ -27,6 +46,11 @@ export type Product = {
   stock: number | null;
   /** Colours, each with its own stock. Empty = the product has no colour choice. */
   variants: Variant[];
+  /** Ways it is sold with their own price. Empty = sold one by one at `price`. */
+  packages: Package[];
+  /** Information tabs. */
+  details: Detail[];
+  features: FeatureKey[];
   media: Media[];
 };
 
@@ -38,6 +62,10 @@ export type OrderItem = {
   qty: number;
   personalization: string;
   colour?: string;
+  /** Packaging picked, e.g. "Box of 24". */
+  package?: string;
+  /** Single pieces per item, used for stock. Missing = 1. */
+  units?: number;
 };
 
 /** An Instagram post that customers can shop from the website. */

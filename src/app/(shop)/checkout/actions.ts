@@ -12,7 +12,7 @@ export type CheckoutInput = {
   city: string;
   address: string;
   notes: string;
-  items: { productId: string; qty: number; personalization: string; colour?: string }[];
+  items: { productId: string; qty: number; personalization: string; colour?: string; package?: string }[];
 };
 
 export type CheckoutResult = { ok: true; orderId: string } | { ok: false; error: string };
@@ -43,11 +43,21 @@ export async function placeOrder(input: CheckoutInput): Promise<CheckoutResult> 
       colour = p.variants.find((v) => v.name === clean(it.colour, 40))?.name;
       if (!colour) return { ok: false, error: `Please choose a flavour for "${p.name}". Remove it from your cart and add it again.` };
     }
+    let pack: { name: string; price: number; units: number } | undefined;
+    if (p.packages.length) {
+      pack = p.packages.find((x) => x.name === clean(it.package, 40));
+      if (!pack) return { ok: false, error: `Please choose a packaging for "${p.name}". Remove it from your cart and add it again.` };
+    }
     const label = colour ? `${p.name} (${colour})` : p.name;
     const left = stockFor(p, colour);
+    if (left !== null && pack && left < pack.units * qty)
+      return { ok: false, error: left < pack.units ? `Sorry, "${label}" doesn't have enough left for a ${pack.name}. Please pick a smaller packaging.` : `Sorry, only ${left} left of "${label}". Please lower the quantity in your cart.` };
     if (left === 0) return { ok: false, error: `Sorry, "${label}" is sold out. Please remove it from your cart.` };
     if (left !== null) tracksStock = true;
-    items.push({ product_id: p.id, slug: p.slug, name: p.name, price: p.price, qty, personalization, ...(colour ? { colour } : {}) });
+    items.push({
+      product_id: p.id, slug: p.slug, name: p.name, price: pack ? pack.price : p.price, qty, personalization,
+      ...(colour ? { colour } : {}), ...(pack ? { package: pack.name, units: pack.units } : {}),
+    });
   }
   const subtotal = Math.round(items.reduce((a, i) => a + i.price * i.qty, 0) * 100) / 100;
   const delivery_fee = site.deliveryFee;

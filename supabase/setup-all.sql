@@ -1,5 +1,5 @@
 -- Nafas Endurance: full database setup in one go. Paste all of this into Supabase > SQL Editor and press Run.
--- It is schema.sql + migrations/002-004 + seed.sql, in order.
+-- It is schema.sql + migrations/002-005 + seed.sql, in order.
 
 -- ===== supabase/schema.sql =====
 -- Nafas Endurance database schema.
@@ -216,6 +216,21 @@ create table if not exists posts (
 
 create index if not exists posts_created_idx on posts(created_at desc);
 alter table posts enable row level security;
+
+-- ===== supabase/migrations/005_product_details.sql =====
+-- Product page extras. Run this once in Supabase > SQL Editor.
+-- packages = ways the product is sold, each with its own price, e.g.
+--   [{"name": "1 gel", "price": 2.2, "units": 1}, {"name": "Box of 24", "price": 52.8, "units": 24}]
+--   units = how many single pieces it takes from stock.
+-- details  = information tabs, e.g. [{"title": "Ingredients", "body": "..."}]
+-- features = badges: "gluten_free", "vegan", "lactose_free", "low_sugar"
+
+alter table products add column if not exists packages jsonb not null default '[]'::jsonb;
+alter table products add column if not exists details jsonb not null default '[]'::jsonb;
+alter table products add column if not exists features jsonb not null default '[]'::jsonb;
+
+-- Tell the API about the new columns straight away.
+notify pgrst, 'reload schema';
 
 -- ===== supabase/seed.sql =====
 -- Starting catalog for Nafas Endurance. Safe to run once after schema.sql.

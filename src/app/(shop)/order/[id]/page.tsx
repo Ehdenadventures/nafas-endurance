@@ -19,7 +19,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
       <p className="mt-3 text-ink-2">We&apos;ll contact you on {o.phone} to confirm. You pay <b>{money(o.total)}</b> in cash when it arrives.</p>
       <ul className="mx-auto mt-6 max-w-sm space-y-1 rounded-2xl border border-line bg-surface p-4 text-left text-sm">
         {o.items.map((i, k) => (
-          <li key={k} className="flex justify-between gap-2"><span>{i.qty} × {i.name}{i.colour && ` · ${i.colour}`}{i.personalization && ` (${i.personalization})`}</span><span>{money(i.qty * i.price)}</span></li>
+          <li key={k} className="flex justify-between gap-2"><span>{i.qty} × {i.name}{i.colour && ` · ${i.colour}`}{i.package && ` · ${i.package}`}{i.personalization && ` (${i.personalization})`}</span><span>{money(i.qty * i.price)}</span></li>
         ))}
         <li className="flex justify-between border-t border-line pt-2"><span>Delivery</span><span>{money(o.delivery_fee)}</span></li>
         <li className="flex justify-between font-bold"><span>Total</span><span>{money(o.total)}</span></li>
