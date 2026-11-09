@@ -27,7 +27,7 @@ export default async function Home() {
               <Link href="/ig" className="btn btn-ghost-dark">Shop our Instagram</Link>
             </div>
           </div>
-          <div className="hidden shrink-0 lg:block"><Logo height={34} onDark /></div>
+          <div className="hidden shrink-0 lg:block"><Logo height={96} /></div>
         </div>
       </section>
 
