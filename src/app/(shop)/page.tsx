@@ -1,35 +1,55 @@
 import Link from "next/link";
-import ProductCard from "@/components/ProductCard";
+import ProductCard, { cover } from "@/components/ProductCard";
+import HeroSlider from "@/components/HeroSlider";
+import BrandStrip from "@/components/BrandStrip";
 import Logo from "@/components/Logo";
 import { categoryTree, getCategories, getProducts } from "@/lib/data";
-import { site } from "@/lib/site";
+import { money, site } from "@/lib/site";
 
 export const revalidate = 60;
 
 export default async function Home() {
   const [cats, products] = await Promise.all([getCategories(), getProducts()]);
   const top = cats.filter((c) => !c.parent_id);
+  const brandOf = (categoryId: string | null) => {
+    let c = cats.find((x) => x.id === categoryId);
+    while (c?.parent_id) c = cats.find((x) => x.id === c!.parent_id);
+    return c?.name ?? "";
+  };
+  // One banner slide per product that has a photo, up to 6.
+  const slides = products
+    .map((p) => ({ p, image: cover(p) }))
+    .filter((x): x is { p: typeof x.p; image: string } => !!x.image)
+    .slice(0, 6)
+    .map(({ p, image }) => ({ href: `/p/${p.slug}`, name: p.name, price: money(p.price), image, brand: brandOf(p.category_id) }));
   return (
     <>
-      <section className="hero-dark -mx-4 mt-6 overflow-hidden rounded-3xl border border-line bg-[#0f1a17] px-6 py-12 text-white sm:mx-0 sm:px-12 sm:py-16">
-        <div className="flex items-center justify-between gap-8">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#d6ff4a]">{site.tagline}</p>
-            <h1 className="mt-4 max-w-2xl text-4xl font-extrabold leading-[1.02] tracking-tight sm:text-6xl">
-              Fuel every kilometre. <span className="highlight">Breathe, push, finish.</span>
-            </h1>
-            <p className="mt-5 max-w-xl text-[#cfe0d8]">Energy gels and race nutrition from trusted brands, starting with Ultimate Italia. Order online and pay cash when it arrives, anywhere in Lebanon.</p>
-            <p lang="ar" dir="rtl" className="mt-2 w-fit text-[#cfe0d8]" style={{ fontFamily: "'Readex Pro', sans-serif" }}>
-              اطلب أونلاين واِدفع عند الاستلام
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link href={`/c/${top[0]?.slug ?? ""}`} className="btn btn-pink">Shop now</Link>
-              <Link href="/ig" className="btn btn-ghost-dark">Shop our Instagram</Link>
-            </div>
+      <HeroSlider
+        products={slides}
+        main={
+          <div className="min-h-[420px] px-6 py-12 sm:px-12 sm:py-16">
+            <div className="flex items-center justify-between gap-8">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#ffc62e]">{site.tagline}</p>
+                  <h1 className="mt-4 max-w-2xl text-4xl font-extrabold leading-[1.02] tracking-tight sm:text-6xl">
+                    Fuel every kilometre. <span className="highlight">Breathe, push, finish.</span>
+                  </h1>
+                  <p className="mt-5 max-w-xl text-[#d3dcf3]">Energy gels and race nutrition from trusted brands, starting with Ultimate Italia. Order online and pay cash when it arrives, anywhere in Lebanon.</p>
+                  <p lang="ar" dir="rtl" className="mt-2 w-fit text-[#d3dcf3]" style={{ fontFamily: "'Readex Pro', sans-serif" }}>
+                    اطلب أونلاين واِدفع عند الاستلام
+                  </p>
+                  <div className="mt-7 flex flex-wrap gap-3">
+                    <Link href={`/c/${top[0]?.slug ?? ""}`} className="btn btn-pink">Shop now</Link>
+                    <Link href="/ig" className="btn btn-ghost-dark">Shop our Instagram</Link>
+                  </div>
+                </div>
+                <div className="hidden shrink-0 lg:block"><Logo height={96} /></div>
+              </div>
           </div>
-          <div className="hidden shrink-0 lg:block"><Logo height={34} onDark /></div>
-        </div>
-      </section>
+        }
+      />
+
+      <BrandStrip brands={top} />
 
       <section className="mt-12 grid gap-4 sm:grid-cols-3" aria-label="Brands">
         {top.map((c) => {

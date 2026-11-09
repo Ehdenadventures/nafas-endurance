@@ -10,7 +10,7 @@ export default async function Header() {
     <header className="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
         <Link href="/" aria-label={`${site.name} home`}>
-          <Logo height={28} />
+          <Logo height={40} />
         </Link>
         <nav className="ml-auto hidden items-center gap-1 md:flex" aria-label="Brands">
           {top.map((c) => (

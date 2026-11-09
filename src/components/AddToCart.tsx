@@ -55,7 +55,7 @@ export default function AddToCart(p: Props) {
             })}
           </div>
           {chosen && chosen.stock !== null && chosen.stock > 0 && chosen.stock <= 5 && (
-            <p className="mt-2 text-sm font-semibold text-[#c44a16] dark:text-pink">Only {chosen.stock} left in {chosen.name}</p>
+            <p className="mt-2 text-sm font-semibold text-bad">Only {chosen.stock} left in {chosen.name}</p>
           )}
         </fieldset>
       )}

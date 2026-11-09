@@ -44,7 +44,7 @@ export default async function ProductPage({ params }: Props) {
           <p className="mt-2 text-2xl font-bold text-accent">{money(p.price)}</p>
           <p className="mt-4 whitespace-pre-line text-ink-2">{p.description}</p>
           {!p.variants.length && p.stock !== null && p.stock > 0 && p.stock <= 5 && (
-            <p className="mt-3 text-sm font-semibold text-[#c44a16] dark:text-pink">Only {p.stock} left</p>
+            <p className="mt-3 text-sm font-semibold text-bad">Only {p.stock} left</p>
           )}
           {isSoldOut(p) ? (
             <p className="mt-6 rounded-xl bg-surface-2 px-4 py-3 font-semibold">Sold out for now. Message us on WhatsApp and we will tell you when it is back.</p>

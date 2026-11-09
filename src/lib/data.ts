@@ -35,7 +35,7 @@ function demo(): Demo {
       sort: p.sort,
       stock: null,
       variants: [],
-      media: [],
+      media: (p.media ?? []) as Product["media"],
     }));
     g.__demo = { categories, products, orders: [], posts: [] };
   }
