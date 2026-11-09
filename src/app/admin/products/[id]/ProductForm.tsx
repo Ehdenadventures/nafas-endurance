@@ -2,11 +2,12 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { DEFAULT_DETAILS, FEATURES, type FeatureKey, type Media, type Product } from "@/lib/types";
+import RichTextarea from "@/components/RichTextarea";
 import { createUploadUrl, deleteProductAction, saveProductAction } from "../../actions";
 
 type Opt = { id: string; label: string };
 type ColourRow = { name: string; hex: string; stock: string; image: string };
-type PackRow = { name: string; price: string; units: string };
+type PackRow = { name: string; price: string; units: string; images: Record<string, string> };
 type DetailRow = { title: string; body: string };
 
 /** Saved tabs first, then any standard tab not used yet (empty tabs are hidden on the shop). */
@@ -36,7 +37,7 @@ export default function ProductForm({ product, categories, uploads }: { product:
   const [colours, setColours] = useState<ColourRow[]>(
     (product?.variants ?? []).map((v) => ({ name: v.name, hex: v.hex, stock: v.stock == null ? "" : String(v.stock), image: v.image ?? "" })),
   );
-  const [packs, setPacks] = useState<PackRow[]>((product?.packages ?? []).map((x) => ({ name: x.name, price: String(x.price), units: String(x.units) })));
+  const [packs, setPacks] = useState<PackRow[]>((product?.packages ?? []).map((x) => ({ name: x.name, price: String(x.price), units: String(x.units), images: x.images ?? {} })));
   const setPack = (i: number, patch: Partial<PackRow>) => setPacks((c) => c.map((x, j) => (j === i ? { ...x, ...patch } : x)));
   const [details, setDetails] = useState<DetailRow[]>(startDetails(product?.details ?? []));
   const setDetail = (i: number, patch: Partial<DetailRow>) => setDetails((c) => c.map((x, j) => (j === i ? { ...x, ...patch } : x)));
@@ -93,7 +94,8 @@ export default function ProductForm({ product, categories, uploads }: { product:
         category_id: f.category_id || null, active: f.active, personalizable: f.personalizable, sort: Number(f.sort),
         stock: colours.length || f.stock.trim() === "" ? null : Number(f.stock),
         variants: colours.filter((c) => c.name.trim()).map((c) => ({ name: c.name.trim(), hex: c.hex, stock: c.stock.trim() === "" ? null : Number(c.stock), image: media.some((m) => m.url === c.image) ? c.image : undefined })),
-        packages: packs.filter((x) => x.name.trim()).map((x) => ({ name: x.name.trim(), price: x.price.trim() === "" ? NaN : Number(x.price), units: Number(x.units) || 1 })),
+        packages: packs.filter((x) => x.name.trim()).map((x) => ({ name: x.name.trim(), price: x.price.trim() === "" ? NaN : Number(x.price), units: Number(x.units) || 1,
+          images: Object.fromEntries(Object.entries(x.images).filter(([k, u]) => media.some((m) => m.url === u) && (k === "" ? !colours.length : colours.some((c) => c.name.trim() === k)))) })),
         details: details.filter((d) => d.title.trim() && d.body.trim()),
         features,
         media,
@@ -163,7 +165,7 @@ export default function ProductForm({ product, categories, uploads }: { product:
 
       <fieldset className="rounded-2xl border border-line bg-surface p-4">
         <legend className="px-1 text-sm font-semibold text-ink-2">Packaging</legend>
-        <p className="mb-3 text-xs text-ink-3">Optional. Add one row for each way you sell it, each with its own price, e.g. &quot;1 gel&quot; at 2.20 and &quot;Box of 24&quot; at 52.80. &quot;Pieces&quot; is how many single items it takes from stock (a box of 24 = 24). Leave empty to sell one by one at the price above.</p>
+        <p className="mb-3 text-xs text-ink-3">Optional. Add one row for each way you sell it, each with its own price, e.g. &quot;1 gel&quot; at 2.20 and &quot;Box of 24&quot; at 52.80. &quot;Pieces&quot; is how many single items it takes from stock (a box of 24 = 24). Leave empty to sell one by one at the price above. {images.length ? "Tap a photo under a packaging to show it when a customer picks that packaging (and flavour)." : "Upload photos below, then you can link a photo to each packaging."}</p>
         {packs.length > 0 && (
           <div className="mb-3 space-y-2">
             <div className="grid grid-cols-[minmax(0,1fr)_6rem_5rem_auto] gap-2 text-xs text-ink-3"><span>Name</span><span>Price (USD)</span><span>Pieces</span><span /></div>
@@ -173,17 +175,38 @@ export default function ProductForm({ product, categories, uploads }: { product:
                 <input className="input" type="number" min="0" step="0.01" inputMode="decimal" aria-label={`Price for ${x.name || "this packaging"}`} value={x.price} onChange={(e) => setPack(i, { price: e.target.value })} />
                 <input className="input" type="number" min="1" step="1" inputMode="numeric" aria-label={`Pieces in ${x.name || "this packaging"}`} value={x.units} onChange={(e) => setPack(i, { units: e.target.value })} />
                 <button type="button" className="px-2 text-sm text-bad" onClick={() => setPacks(packs.filter((_, j) => j !== i))}>Remove</button>
+                {images.length > 0 && (
+                  <div className="col-span-4 space-y-1 pb-2">
+                    {(colours.some((c) => c.name.trim()) ? colours.map((c) => c.name.trim()).filter(Boolean) : [""]).map((flav) => (
+                      <div key={flav} className="flex items-center gap-1.5 overflow-x-auto">
+                        <span className="mr-1 w-24 shrink-0 truncate text-xs text-ink-3" title={flav}>{flav ? `${flav} photo:` : "Photo:"}</span>
+                        {images.map((m, k) => {
+                          const on = x.images[flav] === m.url;
+                          return (
+                            <button key={m.url} type="button" aria-pressed={on}
+                              aria-label={`Use photo ${k + 1} for ${x.name || "this packaging"}${flav ? ` in ${flav}` : ""}`}
+                              onClick={() => { const next = { ...x.images }; if (on) delete next[flav]; else next[flav] = m.url; setPack(i, { images: next }); }}
+                              className={`h-9 w-9 shrink-0 overflow-hidden rounded-md border-2 ${on ? "border-accent" : "border-transparent opacity-60 hover:opacity-100"}`}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={m.url} alt="" className="h-full w-full object-cover" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
         <div className="flex flex-wrap gap-2">
-          {!packs.length && <button type="button" onClick={() => setPacks([{ name: "1 gel", price: f.price, units: "1" }, { name: "Box of 24", price: "", units: "24" }])} className="rounded-full border border-line px-3 py-1 text-sm hover:border-ink-3">1 gel + Box of 24</button>}
-          <button type="button" onClick={() => setPacks([...packs, { name: "", price: "", units: "1" }])} className="rounded-full border border-dashed border-ink-3 px-3 py-1 text-sm">+ Add packaging</button>
+          {!packs.length && <button type="button" onClick={() => setPacks([{ name: "1 gel", price: f.price, units: "1", images: {} }, { name: "Box of 24", price: "", units: "24", images: {} }])} className="rounded-full border border-line px-3 py-1 text-sm hover:border-ink-3">1 gel + Box of 24</button>}
+          <button type="button" onClick={() => setPacks([...packs, { name: "", price: "", units: "1", images: {} }])} className="rounded-full border border-dashed border-ink-3 px-3 py-1 text-sm">+ Add packaging</button>
         </div>
       </fieldset>
 
-      <div className="field"><label htmlFor="desc">Short description (next to the photo)</label><textarea id="desc" className="input" rows={4} value={f.description} onChange={set("description")} /></div>
+      <div className="field"><label htmlFor="desc">Short description (next to the photo)</label><RichTextarea id="desc" rows={4} value={f.description} onChange={(v) => setF({ ...f, description: v })} /></div>
 
       <fieldset className="rounded-2xl border border-line bg-surface p-4">
         <legend className="px-1 text-sm font-semibold text-ink-2">Badges</legend>
@@ -211,7 +234,7 @@ export default function ProductForm({ product, categories, uploads }: { product:
                   <input className="input flex-1" aria-label="Tab title" maxLength={40} value={d.title} onChange={(e) => setDetail(i, { title: e.target.value })} />
                   <button type="button" className="px-2 text-sm text-bad" onClick={() => setDetails(details.filter((_, j) => j !== i))}>Remove</button>
                 </div>
-                <textarea className="input" rows={5} aria-label={`${d.title || "Tab"} text`} value={d.body} onChange={(e) => setDetail(i, { body: e.target.value })} />
+                <RichTextarea rows={5} label={`${d.title || "Tab"} text`} value={d.body} onChange={(v) => setDetail(i, { body: v })} />
               </div>
             </details>
           ))}

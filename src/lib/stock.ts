@@ -42,7 +42,11 @@ export function cleanPackages(raw: unknown): Package[] {
     if (!name || seen.has(name.toLowerCase()) || !(price >= 0)) continue;
     seen.add(name.toLowerCase());
     const units = Math.max(1, Math.min(1000, Math.floor(Number(r?.units)) || 1));
-    out.push({ name, price, units });
+    const images: Record<string, string> = {};
+    if (r?.images && typeof r.images === "object")
+      for (const [k, v] of Object.entries(r.images as Record<string, unknown>))
+        if (typeof v === "string" && /^https?:\/\//.test(v)) images[k.slice(0, 40)] = v;
+    out.push(Object.keys(images).length ? { name, price, units, images } : { name, price, units });
   }
   return out.slice(0, 10);
 }
@@ -58,6 +62,13 @@ export function cleanDetails(raw: unknown): Detail[] {
 const featureKeys = new Set<string>(FEATURES.map((f) => f.key));
 export const cleanFeatures = (raw: unknown): FeatureKey[] =>
   Array.isArray(raw) ? ([...new Set(raw.map(String))].filter((k) => featureKeys.has(k)) as FeatureKey[]) : [];
+
+/** The photo for a flavour + packaging: the packaging's photo for that flavour, then its photo for any flavour,
+ *  then the flavour's own photo. */
+export function photoFor(p: Pick<Product, "variants" | "packages">, colour: string, pack: string): string | undefined {
+  const imgs = p.packages.find((x) => x.name === pack)?.images;
+  return imgs?.[colour] ?? imgs?.[""] ?? p.variants.find((v) => v.name === colour)?.image;
+}
 
 /** Lowest and highest price a customer can pay for one item. */
 export function priceRange(p: Pick<Product, "price" | "packages">): [number, number] {

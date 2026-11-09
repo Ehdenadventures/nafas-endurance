@@ -10,6 +10,7 @@ import { categoryPath, categoryTree, getCategories, getProductBySlug, getProduct
 import { money, site, whatsappLink } from "@/lib/site";
 import { isSoldOut, priceRange } from "@/lib/stock";
 import ProductTabs from "@/components/ProductTabs";
+import { Rich, plainText } from "@/components/RichText";
 import FeatureBadges from "@/components/FeatureBadges";
 
 export const revalidate = 60;
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await getProductBySlug((await params).slug);
   if (!p) return {};
   const img = cover(p);
-  return { title: p.name, description: p.description, openGraph: img ? { images: [img] } : undefined };
+  return { title: p.name, description: plainText(p.description), openGraph: img ? { images: [img] } : undefined };
 }
 
 export default async function ProductPage({ params }: Props) {
@@ -42,13 +43,13 @@ export default async function ProductPage({ params }: Props) {
         <Link href="/" className="hover:text-ink">Home</Link>
         {path.map((c) => <span key={c.id}> / <Link href={`/c/${c.slug}`} className="hover:text-ink">{c.name}</Link></span>)}
       </nav>
-      <ColourProvider initial={p.variants.find((v) => v.stock !== 0)?.name ?? ""}>
+      <ColourProvider initial={p.variants.find((v) => v.stock !== 0)?.name ?? ""} initialPack={p.packages[0]?.name ?? ""}>
       <div className="mt-4 grid gap-8 md:grid-cols-2">
-        <ProductMedia media={p.media} name={p.name} colourImages={Object.fromEntries(p.variants.filter((v) => v.image).map((v) => [v.name, v.image!]))} />
+        <ProductMedia media={p.media} name={p.name} product={p} />
         <div>
           <h1 className="border-b-2 border-accent pb-3 text-3xl font-extrabold uppercase tracking-tight text-accent">{p.name}</h1>
           <p className="mt-4 text-2xl font-bold text-accent">{low === high ? money(low) : `${money(low)} – ${money(high)}`}</p>
-          <p className="mt-4 whitespace-pre-line text-ink-2">{p.description}</p>
+          <p className="mt-4 whitespace-pre-line text-ink-2"><Rich text={p.description} /></p>
           {!p.variants.length && p.stock !== null && p.stock > 0 && p.stock <= 5 && (
             <p className="mt-3 text-sm font-semibold text-bad">Only {p.stock} left</p>
           )}
