@@ -5,20 +5,21 @@ import { site } from "@/lib/site";
 import CartButton from "./CartButton";
 import Logo from "./Logo";
 
-/** A dropdown of subcategories; a subcategory with its own subcategories opens another one to the side. */
+/** A dropdown of subcategories; a subcategory with its own subcategories opens another one to the left
+ *  (the menu sits on the right of the header, so this keeps every list on screen). */
 function SubMenu({ parent, all, level }: { parent: Category; all: Category[]; level: number }) {
   const kids = all.filter((c) => c.parent_id === parent.id);
   if (!kids.length || level > 5) return null;
   return (
-    <div className={`menu-drop absolute z-40 ${level === 1 ? "left-0 top-full pt-2" : "left-full top-0 -mt-2 pl-1"}`}>
+    <div className={`menu-drop absolute z-40 ${level === 1 ? "right-0 top-full pt-2" : "right-full top-0 -mt-2 pr-1"}`}>
       <ul className="min-w-52 rounded-xl border border-line bg-surface p-2 shadow-lg">
         {kids.map((k) => {
           const more = all.some((c) => c.parent_id === k.id);
           return (
             <li key={k.id} className="menu-item relative">
-              <Link href={`/c/${k.slug}`} className="flex items-center justify-between gap-4 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-ink-2 hover:bg-surface-2 hover:text-ink">
+              <Link href={`/c/${k.slug}`} className="flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-ink-2 hover:bg-surface-2 hover:text-ink">
+                <span aria-hidden className={`w-2 text-ink-3 ${more ? "" : "invisible"}`}>‹</span>
                 {k.name}
-                {more && <span aria-hidden className="text-ink-3">›</span>}
               </Link>
               <SubMenu parent={k} all={all} level={level + 1} />
             </li>
