@@ -129,19 +129,33 @@ export async function saveCategoryAction(fd: FormData) {
   const name = String(fd.get("name") ?? "").trim();
   if (!name) return;
   const id = String(fd.get("id") ?? "") || undefined;
+  const cats = await getCategories({ includeHidden: true });
   let parent_id = String(fd.get("parent_id") ?? "") || null;
   // A category can't go inside itself or inside one of its own subcategories.
-  if (id && parent_id && categoryTree(await getCategories({ includeHidden: true }), id).has(parent_id)) parent_id = null;
-  await saveCategory({
+  if (id && parent_id && categoryTree(cats, id).has(parent_id)) parent_id = null;
+  // Every category needs its own web address (slug). Names in Arabic or names already used
+  // elsewhere (e.g. "Energy gels" under two brands) get the brand name or a number added.
+  const taken = new Set(cats.filter((c) => c.id !== id).map((c) => c.slug));
+  const parent = cats.find((c) => c.id === parent_id);
+  let base = slugify(String(fd.get("slug") ?? "") || name) || "category";
+  if (taken.has(base) && parent) base = slugify(`${parent.slug}-${base}`);
+  let slug = base;
+  for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+  try {
+    await saveCategory({
     id,
     name,
-    slug: slugify(String(fd.get("slug") ?? "") || name),
+    slug,
     description: String(fd.get("description") ?? "").trim(),
     parent_id,
     sort: Number(fd.get("sort") ?? 0) || 0,
     active: fd.get("active") === "on",
-  });
+    });
+  } catch (e) {
+    redirect(`/admin/categories?error=${encodeURIComponent(`Couldn't save "${name}": ${(e as Error).message}`)}`);
+  }
   refreshShop();
+  redirect("/admin/categories");
 }
 
 export async function deleteCategoryAction(fd: FormData) {

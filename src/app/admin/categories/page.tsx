@@ -31,7 +31,8 @@ function Row({ c, options, count = 0, subs = 0, parent, placeholder = "New categ
   );
 }
 
-export default async function CategoriesAdmin() {
+export default async function CategoriesAdmin({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
   await requireAdmin();
   const [cats, products] = await Promise.all([getCategories({ includeHidden: true }), getProducts({ includeHidden: true })]);
   const count = (id: string) => products.filter((p) => p.category_id === id).length;
@@ -64,6 +65,7 @@ export default async function CategoriesAdmin() {
       <AdminNav active="categories" />
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-6">
         <h1 className="text-2xl font-bold">Categories</h1>
+        {error && <p role="alert" className="rounded-xl border border-bad bg-surface px-4 py-3 text-sm font-semibold text-bad">{error}</p>}
         <p className="text-sm text-ink-2">A main category is a brand (it shows in the menu and the brand strip). Inside it you can add as many subcategories as you like, and subcategories inside those.</p>
         <section>
           <h2 className="mb-2 font-semibold">Add a brand or category</h2>
