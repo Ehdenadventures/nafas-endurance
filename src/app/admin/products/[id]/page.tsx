@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { getCategories, getProductById, isDemo } from "@/lib/data";
+import { categoryLabel, getCategories, getProductById, isDemo } from "@/lib/data";
 import AdminNav from "../../AdminNav";
 import ProductForm from "./ProductForm";
 
@@ -12,11 +12,7 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
   const product = id === "new" ? null : await getProductById(id);
   if (id !== "new" && !product) notFound();
   const cats = await getCategories({ includeHidden: true });
-  const options = cats
-    .filter((c) => c.parent_id)
-    .map((c) => ({ id: c.id, label: `${cats.find((p) => p.id === c.parent_id)?.name ?? ""} › ${c.name}` }))
-    .concat(cats.filter((c) => !c.parent_id).map((c) => ({ id: c.id, label: c.name })))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  const options = cats.map((c) => ({ id: c.id, label: categoryLabel(cats, c.id) })).sort((a, b) => a.label.localeCompare(b.label));
   return (
     <>
       <AdminNav active="products" />
