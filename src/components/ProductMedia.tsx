@@ -1,15 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useColour } from "./ColourContext";
-import type { Media } from "@/lib/types";
+import type { Media, Product } from "@/lib/types";
+import { photoFor } from "@/lib/stock";
 import { CubeIcon } from "./Icons";
 
-export default function ProductMedia({ media, name, colourImages = {} }: { media: Media[]; name: string; colourImages?: Record<string, string> }) {
-  const picked = useColour()?.colour ?? "";
-  const start = Math.max(0, media.findIndex((x) => x.url === colourImages[picked]));
-  const [i, setI] = useState(start);
-  // When the customer picks a colour that has its own photo, show that photo.
-  const target = colourImages[picked];
+export default function ProductMedia({ media, name, product }: { media: Media[]; name: string; product: Pick<Product, "variants" | "packages"> }) {
+  const choice = useColour();
+  // When the customer picks a flavour or packaging that has its own photo, show that photo.
+  const target = photoFor(product, choice?.colour ?? "", choice?.pack ?? "");
+  const [i, setI] = useState(() => Math.max(0, media.findIndex((x) => x.url === target)));
   useEffect(() => {
     const j = media.findIndex((x) => x.url === target);
     if (j >= 0) setI(j);

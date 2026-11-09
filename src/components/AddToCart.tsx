@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { Package, Variant } from "@/lib/types";
 import { money } from "@/lib/site";
+import { photoFor } from "@/lib/stock";
 import { useCart } from "./CartProvider";
 import { useColour } from "./ColourContext";
 
@@ -23,7 +24,8 @@ export default function AddToCart(p: Props) {
   const shared = useColour();
   const [colour, setColour] = shared ? [shared.colour, shared.setColour] : local;
 
-  const [packName, setPackName] = useState(p.packages[0]?.name ?? "");
+  const localPack = useState(p.packages[0]?.name ?? "");
+  const [packName, setPackName] = shared ? [shared.pack, shared.setPack] : localPack;
   const pack = p.packages.find((x) => x.name === packName);
   const units = pack?.units ?? 1;
   const price = pack ? pack.price : p.price;
@@ -108,7 +110,7 @@ export default function AddToCart(p: Props) {
           className="btn btn-primary flex-1"
           disabled={blocked}
           onClick={() => {
-            add({ productId: p.productId, slug: p.slug, name: p.name, price, image: chosen?.image ?? p.image, personalization: text, colour: chosen?.name, package: pack?.name }, qty);
+            add({ productId: p.productId, slug: p.slug, name: p.name, price, image: photoFor({ variants: p.colours, packages: p.packages }, colour, packName) ?? p.image, personalization: text, colour: chosen?.name, package: pack?.name }, qty);
             setAdded(true);
           }}
         >

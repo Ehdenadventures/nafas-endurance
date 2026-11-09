@@ -5,7 +5,11 @@ export type Variant = { name: string; hex: string; stock: number | null; /** pho
 
 /** A way the product is sold, e.g. "1 gel" or "Box of 24", with its own price.
  *  units = how many single pieces it takes from stock. */
-export type Package = { name: string; price: number; units: number };
+export type Package = {
+  name: string; price: number; units: number;
+  /** Photo to show when this packaging is picked, per flavour name ("" = any flavour). */
+  images?: Record<string, string>;
+};
 
 /** One tab of product information, e.g. Ingredients or Warnings. */
 export type Detail = { title: string; body: string };

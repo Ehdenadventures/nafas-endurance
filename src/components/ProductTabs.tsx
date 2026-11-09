@@ -1,6 +1,7 @@
 "use client";
 import { useId, useState } from "react";
 import type { Detail } from "@/lib/types";
+import { Rich } from "./RichText";
 
 /** Text with "|" between columns becomes a table (handy for nutritional values). */
 function Body({ text }: { text: string }) {
@@ -24,7 +25,7 @@ function Body({ text }: { text: string }) {
                   const Cell = r === 0 ? "th" : "td";
                   return (
                     <tr key={r} className={r === 0 ? "border-b-2 border-line text-left" : "border-b border-line"}>
-                      {cells.map((c, k) => <Cell key={k} className={`px-2 py-1.5 ${k ? "text-right" : "text-left"}`}>{c}</Cell>)}
+                      {cells.map((c, k) => <Cell key={k} className={`px-2 py-1.5 ${k ? "text-right" : "text-left"}`}><Rich text={c} /></Cell>)}
                     </tr>
                   );
                 })}
@@ -32,7 +33,7 @@ function Body({ text }: { text: string }) {
             </table>
           </div>
         ) : (
-          <p key={i} className="whitespace-pre-line">{b.lines.join("\n")}</p>
+          <p key={i} className="whitespace-pre-line"><Rich text={b.lines.join("\n")} /></p>
         ),
       )}
     </div>
