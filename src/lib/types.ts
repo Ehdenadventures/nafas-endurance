@@ -9,6 +9,9 @@ export type Package = {
   name: string; price: number; units: number;
   /** Photo to show when this packaging is picked, per flavour name ("" = any flavour). */
   images?: Record<string, string>;
+  /** How many of this packaging are ready to sell, per flavour name ("" = no flavours).
+   *  Missing or null = no limit. Used instead of the flavour stock when the product has packaging. */
+  stock?: Record<string, number | null>;
 };
 
 /** One tab of product information, e.g. Ingredients or Warnings. */

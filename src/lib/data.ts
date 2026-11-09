@@ -197,28 +197,39 @@ export class OutOfStockError extends Error {
   }
 }
 
-type StockLine = Pick<OrderItem, "product_id" | "name" | "qty" | "colour" | "units">;
+type StockLine = Pick<OrderItem, "product_id" | "name" | "qty" | "colour" | "package" | "units">;
 // If the stock SQL (supabase/migrations/002_stock.sql) hasn't been run yet, skip stock instead of blocking orders.
 const missingFn = (e: { code?: string; message: string }) => e.code === "PGRST202" || /could not find the function/i.test(e.message);
-// A box of 24 takes 24 single pieces from stock.
-const pieces = (i: StockLine) => i.qty * Math.max(1, i.units ?? 1);
-const stockPayload = (items: StockLine[]) => items.map((i) => ({ product_id: i.product_id, name: i.name, qty: pieces(i), colour: i.colour ?? "" }));
+// Products with packaging count stock per packaging (e.g. 10 boxes of Limone), so "packs" is what is taken.
+// "qty" stays the number of single pieces for databases that haven't run 006_package_stock.sql yet.
+const stockPayload = (items: StockLine[]) =>
+  items.map((i) => ({
+    product_id: i.product_id, name: i.name, colour: i.colour ?? "", package: i.package ?? "",
+    packs: i.qty, qty: i.qty * Math.max(1, i.units ?? 1),
+  }));
 
-/** Preview mode: where each order line's stock lives (the product, or one of its colours). */
+/** Preview mode: where each order line's stock lives (a packaging, a flavour, or the product). */
 function demoSlots(items: StockLine[]) {
   const need = new Map<string, StockLine>();
   for (const i of items) {
-    const k = `${i.product_id}::${i.colour ?? ""}`;
+    const k = `${i.product_id}::${i.colour ?? ""}::${i.package ?? ""}`;
     const cur = need.get(k);
-    need.set(k, cur ? { ...cur, qty: cur.qty + pieces(i) } : { ...i, qty: pieces(i), units: 1 });
+    need.set(k, cur ? { ...cur, qty: cur.qty + i.qty } : { ...i });
   }
   const out: { label: string; qty: number; get: () => number | null; add: (n: number) => void }[] = [];
   for (const i of need.values()) {
     const p = demo().products.find((x) => x.id === i.product_id);
     if (!p) continue;
+    const label = [p.name, i.colour, i.package].filter(Boolean).join(" · ");
+    const pk = i.package ? p.packages.find((x) => x.name === i.package) : undefined;
+    if (pk) {
+      const key = i.colour ?? "";
+      out.push({ label, qty: i.qty, get: () => pk.stock?.[key] ?? null, add: (n) => { const v = pk.stock?.[key]; if (v != null) pk.stock![key] = v + n; } });
+      continue;
+    }
     const v = i.colour ? p.variants.find((x) => x.name === i.colour) : undefined;
-    if (v) out.push({ label: `${p.name} (${v.name})`, qty: i.qty, get: () => v.stock, add: (n) => { if (v.stock !== null) v.stock += n; } });
-    else out.push({ label: p.name, qty: i.qty, get: () => p.stock, add: (n) => { if (p.stock !== null) p.stock += n; } });
+    if (v) out.push({ label, qty: i.qty, get: () => v.stock, add: (n) => { if (v.stock !== null) v.stock += n; } });
+    else out.push({ label, qty: i.qty, get: () => p.stock, add: (n) => { if (p.stock !== null) p.stock += n; } });
   }
   return out;
 }
