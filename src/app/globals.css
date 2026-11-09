@@ -1,35 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  /* brand: deep forest green + electric lime + energy orange */
-  --bg: #f5f6f2;
+  /* brand, from the logo: yellow #ffc62e, blue #117bc9, navy #082161 */
+  --bg: #fffbf2;
   --surface: #ffffff;
-  --surface-2: #e9ece4;
-  --line: #d7dccf;
-  --ink: #0f1a17;
-  --ink-2: #3f4a45;
-  --ink-3: #66706b;
-  --accent: #0d6b4e;
+  --surface-2: #fff3d6;
+  --line: #efe1bd;
+  --ink: #082161;
+  --ink-2: #34436f;
+  --ink-3: #5d6890;
+  --accent: #117bc9;
   --accent-ink: #ffffff;
-  --accent-soft: #dcefe6;
-  --pink: #ff6a1a;
+  --accent-soft: #e3f0fb;
+  --pink: #ffc62e;
   --good: #1f7a3a;
   --bad: #c4264f;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0a100e;
-    --surface: #121b18;
-    --surface-2: #1a2622;
-    --line: #2a3a34;
-    --ink: #f1f5f2;
-    --ink-2: #c3ccc7;
-    --ink-3: #95a19b;
-    --accent: #6fe0b0;
-    --accent-ink: #0a100e;
-    --accent-soft: #173a2e;
-    --pink: #ff8a45;
+    --bg: #061433;
+    --surface: #0b1d48;
+    --surface-2: #11275c;
+    --line: #1f3770;
+    --ink: #f3f6ff;
+    --ink-2: #c6cfea;
+    --ink-3: #97a4c9;
+    --accent: #5fb3f2;
+    --accent-ink: #061433;
+    --accent-soft: #14306a;
+    --pink: #ffc62e;
     --good: #5cc27e;
     --bad: #ff7a9c;
   }
@@ -63,7 +63,7 @@ body {
 .layers {
   background-image: repeating-linear-gradient(0deg, color-mix(in srgb, var(--accent) 10%, transparent) 0 3px, transparent 3px 10px);
 }
-.hero-dark .highlight { color: #d6ff4a; }
+.hero-dark .highlight { color: #ffc62e; }
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
@@ -74,7 +74,7 @@ body {
 .btn:hover { border-color: var(--ink-3); }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn-primary:hover { filter: brightness(1.06); }
-.btn-pink { background: #d6ff4a; border-color: #d6ff4a; color: #0f1a17; }
+.btn-pink { background: #ffc62e; border-color: #ffc62e; color: #082161; }
 .btn-pink:hover { filter: brightness(1.08); }
 .btn-ghost-dark { background: transparent; border-color: rgb(255 255 255 / .3); color: #fff; }
 .btn-ghost-dark:hover { border-color: #fff; }

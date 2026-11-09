@@ -11,15 +11,15 @@ export default async function Home() {
   const top = cats.filter((c) => !c.parent_id);
   return (
     <>
-      <section className="hero-dark -mx-4 mt-6 overflow-hidden rounded-3xl border border-line bg-[#0f1a17] px-6 py-12 text-white sm:mx-0 sm:px-12 sm:py-16">
+      <section className="hero-dark -mx-4 mt-6 overflow-hidden rounded-3xl border border-line bg-[#082161] px-6 py-12 text-white sm:mx-0 sm:px-12 sm:py-16">
         <div className="flex items-center justify-between gap-8">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#d6ff4a]">{site.tagline}</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#ffc62e]">{site.tagline}</p>
             <h1 className="mt-4 max-w-2xl text-4xl font-extrabold leading-[1.02] tracking-tight sm:text-6xl">
               Fuel every kilometre. <span className="highlight">Breathe, push, finish.</span>
             </h1>
-            <p className="mt-5 max-w-xl text-[#cfe0d8]">Energy gels and race nutrition from trusted brands, starting with Ultimate Italia. Order online and pay cash when it arrives, anywhere in Lebanon.</p>
-            <p lang="ar" dir="rtl" className="mt-2 w-fit text-[#cfe0d8]" style={{ fontFamily: "'Readex Pro', sans-serif" }}>
+            <p className="mt-5 max-w-xl text-[#d3dcf3]">Energy gels and race nutrition from trusted brands, starting with Ultimate Italia. Order online and pay cash when it arrives, anywhere in Lebanon.</p>
+            <p lang="ar" dir="rtl" className="mt-2 w-fit text-[#d3dcf3]" style={{ fontFamily: "'Readex Pro', sans-serif" }}>
               اطلب أونلاين واِدفع عند الاستلام
             </p>
             <div className="mt-7 flex flex-wrap gap-3">

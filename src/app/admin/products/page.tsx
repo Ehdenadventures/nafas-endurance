@@ -46,7 +46,7 @@ export default async function ProductsAdmin() {
                       </span>
                     ) : p.stock === null ? <span className="text-ink-3">No limit</span>
                       : p.stock === 0 ? <span className="font-semibold text-bad">Sold out</span>
-                      : <span className={p.stock <= 3 ? "font-semibold text-[#c44a16] dark:text-pink" : ""}>{p.stock}</span>}
+                      : <span className={p.stock <= 3 ? "font-semibold text-bad" : ""}>{p.stock}</span>}
                   </td>
                   <td className="p-3 text-ink-2">{p.media.length || <span className="text-bad">none</span>}</td>
                   <td className="p-3">{p.active ? "Live" : <span className="text-ink-3">Hidden</span>}</td>
