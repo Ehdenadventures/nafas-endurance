@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { getCategories, getProducts } from "@/lib/data";
+import { categoryLabel, getCategories, getProducts } from "@/lib/data";
 import { money } from "@/lib/site";
 import AdminNav from "../AdminNav";
 
@@ -9,12 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function ProductsAdmin() {
   await requireAdmin();
   const [products, cats] = await Promise.all([getProducts({ includeHidden: true }), getCategories({ includeHidden: true })]);
-  const label = (id: string | null) => {
-    const c = cats.find((x) => x.id === id);
-    if (!c) return "No category";
-    const p = cats.find((x) => x.id === c.parent_id);
-    return p ? `${p.name} › ${c.name}` : c.name;
-  };
+  const label = (id: string | null) => categoryLabel(cats, id) || "No category";
   const sorted = [...products].sort((a, b) => label(a.category_id).localeCompare(label(b.category_id)) || a.sort - b.sort);
   return (
     <>

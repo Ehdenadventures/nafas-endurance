@@ -6,7 +6,7 @@ import ProductCard, { cover } from "@/components/ProductCard";
 import ProductMedia from "@/components/ProductMedia";
 import { ColourProvider } from "@/components/ColourContext";
 import { WhatsAppIcon } from "@/components/Icons";
-import { getCategories, getProductBySlug, getProducts } from "@/lib/data";
+import { categoryPath, getCategories, getProductBySlug, getProducts } from "@/lib/data";
 import { money, site, whatsappLink } from "@/lib/site";
 import { isSoldOut } from "@/lib/stock";
 
@@ -25,7 +25,7 @@ export default async function ProductPage({ params }: Props) {
   const [p, cats, all] = await Promise.all([getProductBySlug(slug), getCategories(), getProducts()]);
   if (!p) notFound();
   const cat = cats.find((c) => c.id === p.category_id);
-  const parent = cat?.parent_id ? cats.find((c) => c.id === cat.parent_id) : null;
+  const path = categoryPath(cats, p.category_id);
   const related = all.filter((x) => x.category_id === p.category_id && x.id !== p.id).slice(0, 4);
   const ask = whatsappLink(`Hi ${site.name}, I have a question about "${p.name}" (${site.url}/p/${p.slug})`);
 
@@ -33,8 +33,7 @@ export default async function ProductPage({ params }: Props) {
     <div className="pt-8">
       <nav className="text-sm text-ink-3" aria-label="Breadcrumb">
         <Link href="/" className="hover:text-ink">Home</Link>
-        {parent && <> / <Link href={`/c/${parent.slug}`} className="hover:text-ink">{parent.name}</Link></>}
-        {cat && <> / <Link href={`/c/${(parent ?? cat).slug}#${cat.slug}`} className="hover:text-ink">{cat.name}</Link></>}
+        {path.map((c) => <span key={c.id}> / <Link href={`/c/${c.slug}`} className="hover:text-ink">{c.name}</Link></span>)}
       </nav>
       <ColourProvider initial={p.variants.find((v) => v.stock !== 0)?.name ?? ""}>
       <div className="mt-4 grid gap-8 md:grid-cols-2">

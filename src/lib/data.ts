@@ -152,6 +152,21 @@ export async function deleteProduct(id: string) {
 }
 
 /** Every category id at or below `rootId` (a main category includes its subcategories). */
+/** The chain from the brand down to this category, e.g. [Ultimate Italia, Gels, Caffeine gels]. */
+export function categoryPath(categories: Category[], id: string | null): Category[] {
+  const path: Category[] = [];
+  let c = categories.find((x) => x.id === id);
+  while (c && !path.includes(c)) {
+    path.unshift(c);
+    c = c.parent_id ? categories.find((x) => x.id === c!.parent_id) : undefined;
+  }
+  return path;
+}
+
+/** "Ultimate Italia › Gels › Caffeine gels" */
+export const categoryLabel = (categories: Category[], id: string | null) =>
+  categoryPath(categories, id).map((c) => c.name).join(" › ");
+
 export function categoryTree(categories: Category[], rootId: string): Set<string> {
   const ids = new Set([rootId]);
   let grew = true;

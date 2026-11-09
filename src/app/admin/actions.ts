@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin, login, logout } from "@/lib/auth";
 import {
   deleteCategory, deletePost, deleteProduct, savePost, type PostInput, getOrder, getProducts, OutOfStockError, returnStock, saveCategory, saveProduct,
-  takeStock, updateOrder,
+  takeStock, updateOrder, categoryTree, getCategories,
 } from "@/lib/data";
 import { db, MEDIA_BUCKET } from "@/lib/supabase";
 import { cleanVariants } from "@/lib/stock";
@@ -129,12 +129,15 @@ export async function saveCategoryAction(fd: FormData) {
   const name = String(fd.get("name") ?? "").trim();
   if (!name) return;
   const id = String(fd.get("id") ?? "") || undefined;
+  let parent_id = String(fd.get("parent_id") ?? "") || null;
+  // A category can't go inside itself or inside one of its own subcategories.
+  if (id && parent_id && categoryTree(await getCategories({ includeHidden: true }), id).has(parent_id)) parent_id = null;
   await saveCategory({
     id,
     name,
     slug: slugify(String(fd.get("slug") ?? "") || name),
     description: String(fd.get("description") ?? "").trim(),
-    parent_id: String(fd.get("parent_id") ?? "") || null,
+    parent_id,
     sort: Number(fd.get("sort") ?? 0) || 0,
     active: fd.get("active") === "on",
   });
