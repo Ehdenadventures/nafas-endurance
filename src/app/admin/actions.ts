@@ -7,8 +7,8 @@ import {
   takeStock, updateOrder, categoryTree, getCategories,
 } from "@/lib/data";
 import { db, MEDIA_BUCKET } from "@/lib/supabase";
-import { cleanVariants } from "@/lib/stock";
-import { ORDER_STATUSES, type Media, type OrderStatus, type Variant } from "@/lib/types";
+import { cleanDetails, cleanFeatures, cleanPackages, cleanVariants } from "@/lib/stock";
+import { ORDER_STATUSES, type Detail, type FeatureKey, type Media, type OrderStatus, type Package, type Variant } from "@/lib/types";
 import { sendToWakilni } from "@/lib/wakilni";
 
 const slugify = (s: string) =>
@@ -45,6 +45,9 @@ export type ProductInput = {
   sort: number;
   stock: number | null;
   variants: Variant[];
+  packages: Package[];
+  details: Detail[];
+  features: FeatureKey[];
   media: Media[];
 };
 
@@ -53,7 +56,11 @@ export async function saveProductAction(p: ProductInput): Promise<{ error?: stri
   const name = p.name.trim();
   const slug = slugify(p.slug || name);
   if (!name || !slug) return { error: "Name is required." };
-  if (!(p.price >= 0)) return { error: "Price must be 0 or more." };
+  const packages = cleanPackages(p.packages);
+  if ((p.packages || []).some((x) => x.name.trim() && !(Number(x.price) >= 0))) return { error: "Every packaging needs a price." };
+  // With packaging options, the product's own price is the cheapest one (used on product cards).
+  const price = packages.length ? Math.min(...packages.map((x) => x.price)) : p.price;
+  if (!(price >= 0)) return { error: "Price must be 0 or more." };
   const stock = p.stock === null ? null : Math.floor(Number(p.stock));
   if (stock !== null && !(stock >= 0)) return { error: "Stock must be 0 or more, or empty for no limit." };
   const clash = (await getProducts({ includeHidden: true })).find((x) => x.slug === slug && x.id !== p.id);
@@ -63,9 +70,10 @@ export async function saveProductAction(p: ProductInput): Promise<{ error?: stri
     .slice(0, 20);
   try {
     await saveProduct({
-      id: p.id, name, slug, description: p.description.trim(), price: Math.round(p.price * 100) / 100,
+      id: p.id, name, slug, description: p.description.trim(), price: Math.round(price * 100) / 100,
       category_id: p.category_id || null, active: !!p.active, personalizable: !!p.personalizable,
-      sort: Math.floor(p.sort) || 0, stock, variants: cleanVariants(p.variants), media,
+      sort: Math.floor(p.sort) || 0, stock, variants: cleanVariants(p.variants),
+      packages, details: cleanDetails(p.details).filter((d) => d.body), features: cleanFeatures(p.features), media,
     });
   } catch (e) {
     return { error: (e as Error).message };

@@ -1,7 +1,7 @@
 import "server-only";
 import seed from "./seed.json";
 import { db } from "./supabase";
-import { cleanVariants } from "./stock";
+import { cleanDetails, cleanFeatures, cleanPackages, cleanVariants } from "./stock";
 import type { Category, Order, OrderItem, OrderStatus, Post, Product } from "./types";
 
 /*
@@ -35,6 +35,9 @@ function demo(): Demo {
       sort: p.sort,
       stock: null,
       variants: [],
+      packages: [],
+      details: [],
+      features: [],
       media: (p.media ?? []) as Product["media"],
     }));
     g.__demo = { categories, products, orders: [], posts: [] };
@@ -44,9 +47,12 @@ function demo(): Demo {
 
 export const isDemo = () => db() === null;
 
-const num = <T extends { price?: unknown; stock?: unknown; variants?: unknown }>(r: T) => ({
+const num = <T extends { price?: unknown; stock?: unknown; variants?: unknown; packages?: unknown; details?: unknown; features?: unknown }>(r: T) => ({
   ...r,
   variants: cleanVariants(r.variants),
+  packages: cleanPackages(r.packages),
+  details: cleanDetails(r.details),
+  features: cleanFeatures(r.features),
   price: Number(r.price),
   stock: r.stock == null ? null : Number(r.stock),
 });
@@ -138,6 +144,8 @@ export async function saveProduct(p: Omit<Product, "id"> & { id?: string }) {
   }
   const { id, ...rest } = p;
   const { error } = id ? await s.from("products").update(rest).eq("id", id) : await s.from("products").insert(rest);
+  if (error && /(packages|details|features)/.test(error.message) && /(column|schema cache)/i.test(error.message))
+    throw new Error("The database needs a small update first: in Supabase open SQL Editor, paste supabase/migrations/005_product_details.sql and press Run. Then save again.");
   fail(error);
 }
 
@@ -189,10 +197,12 @@ export class OutOfStockError extends Error {
   }
 }
 
-type StockLine = Pick<OrderItem, "product_id" | "name" | "qty" | "colour">;
+type StockLine = Pick<OrderItem, "product_id" | "name" | "qty" | "colour" | "units">;
 // If the stock SQL (supabase/migrations/002_stock.sql) hasn't been run yet, skip stock instead of blocking orders.
 const missingFn = (e: { code?: string; message: string }) => e.code === "PGRST202" || /could not find the function/i.test(e.message);
-const stockPayload = (items: StockLine[]) => items.map(({ product_id, name, qty, colour }) => ({ product_id, name, qty, colour: colour ?? "" }));
+// A box of 24 takes 24 single pieces from stock.
+const pieces = (i: StockLine) => i.qty * Math.max(1, i.units ?? 1);
+const stockPayload = (items: StockLine[]) => items.map((i) => ({ product_id: i.product_id, name: i.name, qty: pieces(i), colour: i.colour ?? "" }));
 
 /** Preview mode: where each order line's stock lives (the product, or one of its colours). */
 function demoSlots(items: StockLine[]) {
@@ -200,7 +210,7 @@ function demoSlots(items: StockLine[]) {
   for (const i of items) {
     const k = `${i.product_id}::${i.colour ?? ""}`;
     const cur = need.get(k);
-    need.set(k, cur ? { ...cur, qty: cur.qty + i.qty } : { ...i });
+    need.set(k, cur ? { ...cur, qty: cur.qty + pieces(i) } : { ...i, qty: pieces(i), units: 1 });
   }
   const out: { label: string; qty: number; get: () => number | null; add: (n: number) => void }[] = [];
   for (const i of need.values()) {

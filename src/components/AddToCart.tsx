@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import type { Variant } from "@/lib/types";
+import type { Package, Variant } from "@/lib/types";
+import { money } from "@/lib/site";
 import { useCart } from "./CartProvider";
 import { useColour } from "./ColourContext";
 
@@ -10,6 +11,7 @@ type Props = {
   /** Stock when the product has no colours. null = no limit. */
   stock: number | null;
   colours: Variant[];
+  packages: Package[];
 };
 
 export default function AddToCart(p: Props) {
@@ -21,11 +23,16 @@ export default function AddToCart(p: Props) {
   const shared = useColour();
   const [colour, setColour] = shared ? [shared.colour, shared.setColour] : local;
 
+  const [packName, setPackName] = useState(p.packages[0]?.name ?? "");
+  const pack = p.packages.find((x) => x.name === packName);
+  const units = pack?.units ?? 1;
+  const price = pack ? pack.price : p.price;
+
   const chosen = p.colours.find((c) => c.name === colour);
   const left = p.colours.length ? (chosen ? chosen.stock : 0) : p.stock;
-  const max = Math.min(99, left ?? 99);
+  const max = Math.min(99, left === null ? 99 : Math.floor(left / units));
   const needsText = p.personalizable && !text.trim();
-  const blocked = needsText || (p.colours.length > 0 && !chosen) || left === 0;
+  const blocked = needsText || (p.colours.length > 0 && !chosen) || (p.packages.length > 0 && !pack) || max < 1;
 
   return (
     <div className="mt-6 space-y-4">
@@ -45,7 +52,7 @@ export default function AddToCart(p: Props) {
                   disabled={out}
                   aria-pressed={on}
                   title={out ? `${c.name} (sold out)` : c.name}
-                  onClick={() => { setColour(c.name); setQty((q) => Math.min(q, Math.min(99, c.stock ?? 99))); setAdded(false); }}
+                  onClick={() => { setColour(c.name); setQty((q) => Math.max(1, Math.min(q, Math.min(99, c.stock === null ? 99 : Math.floor(c.stock / units))))); setAdded(false); }}
                   className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition ${on ? "border-accent ring-2 ring-accent" : "border-line hover:border-ink-3"} ${out ? "cursor-not-allowed opacity-45 line-through" : ""}`}
                 >
                   <span className="h-5 w-5 rounded-full border border-line" style={{ background: c.hex }} />
@@ -59,6 +66,31 @@ export default function AddToCart(p: Props) {
           )}
         </fieldset>
       )}
+      {p.packages.length > 0 && (
+        <fieldset>
+          <legend className="mb-2 text-sm font-semibold">Packaging</legend>
+          <div className="flex flex-wrap gap-2">
+            {p.packages.map((x) => {
+              const on = x.name === packName;
+              const short = left !== null && left < x.units;
+              return (
+                <button
+                  key={x.name}
+                  type="button"
+                  disabled={short}
+                  aria-pressed={on}
+                  onClick={() => { setPackName(x.name); setQty((q) => Math.max(1, Math.min(q, left === null ? 99 : Math.floor(left / x.units)))); setAdded(false); }}
+                  className={`rounded-xl border px-3 py-2 text-left text-sm transition ${on ? "border-accent ring-2 ring-accent" : "border-line hover:border-ink-3"} ${short ? "cursor-not-allowed opacity-45" : ""}`}
+                >
+                  <span className="block font-semibold">{x.name}</span>
+                  <span className="block text-ink-2">{money(x.price)}{x.units > 1 && <span className="text-xs text-ink-3"> · {money(x.price / x.units)} each</span>}</span>
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
+      {p.packages.length > 0 && <p className="text-2xl font-bold text-accent" aria-live="polite">{money(price * qty)}</p>}
       {p.personalizable && (
         <div className="field">
           <label htmlFor="pers">Name or note</label>
@@ -76,7 +108,7 @@ export default function AddToCart(p: Props) {
           className="btn btn-primary flex-1"
           disabled={blocked}
           onClick={() => {
-            add({ productId: p.productId, slug: p.slug, name: p.name, price: p.price, image: chosen?.image ?? p.image, personalization: text, colour: chosen?.name }, qty);
+            add({ productId: p.productId, slug: p.slug, name: p.name, price, image: chosen?.image ?? p.image, personalization: text, colour: chosen?.name, package: pack?.name }, qty);
             setAdded(true);
           }}
         >

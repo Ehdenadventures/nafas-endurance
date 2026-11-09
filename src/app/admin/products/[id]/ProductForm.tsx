@@ -1,11 +1,19 @@
 "use client";
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import type { Media, Product } from "@/lib/types";
+import { DEFAULT_DETAILS, FEATURES, type FeatureKey, type Media, type Product } from "@/lib/types";
 import { createUploadUrl, deleteProductAction, saveProductAction } from "../../actions";
 
 type Opt = { id: string; label: string };
 type ColourRow = { name: string; hex: string; stock: string; image: string };
+type PackRow = { name: string; price: string; units: string };
+type DetailRow = { title: string; body: string };
+
+/** Saved tabs first, then any standard tab not used yet (empty tabs are hidden on the shop). */
+function startDetails(saved: DetailRow[]): DetailRow[] {
+  const have = new Set(saved.map((d) => d.title.toLowerCase()));
+  return [...saved, ...DEFAULT_DETAILS.filter((t) => !have.has(t.toLowerCase())).map((title) => ({ title, body: "" }))];
+}
 
 const PRESETS: [string, string][] = [
   ["Orange", "#f28c28"], ["Lemon", "#f2d32c"], ["Cola", "#5a2e1b"], ["Berries", "#8e2a6b"], ["Strawberry", "#d93445"],
@@ -28,6 +36,11 @@ export default function ProductForm({ product, categories, uploads }: { product:
   const [colours, setColours] = useState<ColourRow[]>(
     (product?.variants ?? []).map((v) => ({ name: v.name, hex: v.hex, stock: v.stock == null ? "" : String(v.stock), image: v.image ?? "" })),
   );
+  const [packs, setPacks] = useState<PackRow[]>((product?.packages ?? []).map((x) => ({ name: x.name, price: String(x.price), units: String(x.units) })));
+  const setPack = (i: number, patch: Partial<PackRow>) => setPacks((c) => c.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const [details, setDetails] = useState<DetailRow[]>(startDetails(product?.details ?? []));
+  const setDetail = (i: number, patch: Partial<DetailRow>) => setDetails((c) => c.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const [features, setFeatures] = useState<FeatureKey[]>(product?.features ?? []);
   const images = media.filter((m) => m.type === "image");
   const setColour = (i: number, patch: Partial<ColourRow>) => setColours((c) => c.map((x, j) => (j === i ? { ...x, ...patch } : x)));
   const addColour = (name = "", hex = "#888888") => {
@@ -80,6 +93,9 @@ export default function ProductForm({ product, categories, uploads }: { product:
         category_id: f.category_id || null, active: f.active, personalizable: f.personalizable, sort: Number(f.sort),
         stock: colours.length || f.stock.trim() === "" ? null : Number(f.stock),
         variants: colours.filter((c) => c.name.trim()).map((c) => ({ name: c.name.trim(), hex: c.hex, stock: c.stock.trim() === "" ? null : Number(c.stock), image: media.some((m) => m.url === c.image) ? c.image : undefined })),
+        packages: packs.filter((x) => x.name.trim()).map((x) => ({ name: x.name.trim(), price: x.price.trim() === "" ? NaN : Number(x.price), units: Number(x.units) || 1 })),
+        details: details.filter((d) => d.title.trim() && d.body.trim()),
+        features,
         media,
       });
       if (res?.error) setError(res.error);
@@ -94,7 +110,7 @@ export default function ProductForm({ product, categories, uploads }: { product:
       </div>
       <div className="field"><label htmlFor="name">Name</label><input id="name" className="input" value={f.name} onChange={set("name")} required /></div>
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="field"><label htmlFor="price">Price (USD)</label><input id="price" className="input" type="number" min="0" step="0.5" inputMode="decimal" value={f.price} onChange={set("price")} required /></div>
+        <div className="field"><label htmlFor="price">Price (USD)</label><input id="price" className="input" type="number" min="0" step="0.01" inputMode="decimal" value={packs.length ? "" : f.price} onChange={set("price")} required={!packs.length} disabled={packs.length > 0} placeholder={packs.length ? "Per packaging below" : ""} /></div>
         <div className="field"><label htmlFor="cat">Category</label>
           <select id="cat" className="input" value={f.category_id} onChange={set("category_id")}>
             <option value="">No category</option>
@@ -145,7 +161,63 @@ export default function ProductForm({ product, categories, uploads }: { product:
         </div>
       </fieldset>
 
-      <div className="field"><label htmlFor="desc">Description</label><textarea id="desc" className="input" rows={4} value={f.description} onChange={set("description")} /></div>
+      <fieldset className="rounded-2xl border border-line bg-surface p-4">
+        <legend className="px-1 text-sm font-semibold text-ink-2">Packaging</legend>
+        <p className="mb-3 text-xs text-ink-3">Optional. Add one row for each way you sell it, each with its own price, e.g. &quot;1 gel&quot; at 2.20 and &quot;Box of 24&quot; at 52.80. &quot;Pieces&quot; is how many single items it takes from stock (a box of 24 = 24). Leave empty to sell one by one at the price above.</p>
+        {packs.length > 0 && (
+          <div className="mb-3 space-y-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_6rem_5rem_auto] gap-2 text-xs text-ink-3"><span>Name</span><span>Price (USD)</span><span>Pieces</span><span /></div>
+            {packs.map((x, i) => (
+              <div key={i} className="grid grid-cols-[minmax(0,1fr)_6rem_5rem_auto] items-center gap-2">
+                <input className="input" placeholder="e.g. Box of 24" aria-label="Packaging name" maxLength={40} value={x.name} onChange={(e) => setPack(i, { name: e.target.value })} />
+                <input className="input" type="number" min="0" step="0.01" inputMode="decimal" aria-label={`Price for ${x.name || "this packaging"}`} value={x.price} onChange={(e) => setPack(i, { price: e.target.value })} />
+                <input className="input" type="number" min="1" step="1" inputMode="numeric" aria-label={`Pieces in ${x.name || "this packaging"}`} value={x.units} onChange={(e) => setPack(i, { units: e.target.value })} />
+                <button type="button" className="px-2 text-sm text-bad" onClick={() => setPacks(packs.filter((_, j) => j !== i))}>Remove</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          {!packs.length && <button type="button" onClick={() => setPacks([{ name: "1 gel", price: f.price, units: "1" }, { name: "Box of 24", price: "", units: "24" }])} className="rounded-full border border-line px-3 py-1 text-sm hover:border-ink-3">1 gel + Box of 24</button>}
+          <button type="button" onClick={() => setPacks([...packs, { name: "", price: "", units: "1" }])} className="rounded-full border border-dashed border-ink-3 px-3 py-1 text-sm">+ Add packaging</button>
+        </div>
+      </fieldset>
+
+      <div className="field"><label htmlFor="desc">Short description (next to the photo)</label><textarea id="desc" className="input" rows={4} value={f.description} onChange={set("description")} /></div>
+
+      <fieldset className="rounded-2xl border border-line bg-surface p-4">
+        <legend className="px-1 text-sm font-semibold text-ink-2">Badges</legend>
+        <p className="mb-3 text-xs text-ink-3">Tick what applies. The others show faded on the product page. Leave all empty to hide the badges.</p>
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
+          {FEATURES.map((x) => (
+            <label key={x.key} className="flex items-center gap-2">
+              <input type="checkbox" className="h-4 w-4 accent-[var(--accent)]" checked={features.includes(x.key)}
+                onChange={(e) => setFeatures(e.target.checked ? [...features, x.key] : features.filter((k) => k !== x.key))} />
+              {x.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="rounded-2xl border border-line bg-surface p-4">
+        <legend className="px-1 text-sm font-semibold text-ink-2">Information tabs</legend>
+        <p className="mb-3 text-xs text-ink-3">Shown as tabs under the product. Empty tabs are hidden. For a table (like nutritional values), put | between columns, one row per line, e.g. <code>Energy | 100 kcal | 50 kcal</code>. The first row is the header.</p>
+        <div className="space-y-3">
+          {details.map((d, i) => (
+            <details key={i} className="rounded-xl border border-line">
+              <summary className="cursor-pointer px-3 py-2 text-sm font-semibold">{d.title || "New tab"}{d.body.trim() ? "" : <span className="font-normal text-ink-3"> (empty)</span>}</summary>
+              <div className="space-y-2 px-3 pb-3">
+                <div className="flex gap-2">
+                  <input className="input flex-1" aria-label="Tab title" maxLength={40} value={d.title} onChange={(e) => setDetail(i, { title: e.target.value })} />
+                  <button type="button" className="px-2 text-sm text-bad" onClick={() => setDetails(details.filter((_, j) => j !== i))}>Remove</button>
+                </div>
+                <textarea className="input" rows={5} aria-label={`${d.title || "Tab"} text`} value={d.body} onChange={(e) => setDetail(i, { body: e.target.value })} />
+              </div>
+            </details>
+          ))}
+        </div>
+        <button type="button" onClick={() => setDetails([...details, { title: "", body: "" }])} className="mt-3 rounded-full border border-dashed border-ink-3 px-3 py-1 text-sm">+ Add a tab</button>
+      </fieldset>
 
       <fieldset className="rounded-2xl border border-line bg-surface p-4">
         <legend className="px-1 text-sm font-semibold text-ink-2">Photos and videos</legend>

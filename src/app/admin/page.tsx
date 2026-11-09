@@ -49,7 +49,7 @@ export default async function OrdersPage() {
               </div>
               <ul className="mt-3 space-y-0.5 border-t border-line pt-3 text-sm">
                 {o.items.map((i, k) => (
-                  <li key={k}>{i.qty} × {i.name}{i.colour && <b> · {i.colour}</b>}{i.personalization && <b> · “{i.personalization}”</b>} <span className="text-ink-3">({money(i.price)})</span></li>
+                  <li key={k}>{i.qty} × {i.name}{i.colour && <b> · {i.colour}</b>}{i.package && <b> · {i.package}</b>}{i.personalization && <b> · “{i.personalization}”</b>} <span className="text-ink-3">({money(i.price)})</span></li>
                 ))}
               </ul>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
