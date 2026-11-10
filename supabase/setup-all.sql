@@ -1,5 +1,5 @@
 -- Nafas Endurance: full database setup in one go. Paste all of this into Supabase > SQL Editor and press Run.
--- It is schema.sql + migrations/002-006 + seed.sql, in order.
+-- It is schema.sql + migrations/002-007 + seed.sql, in order.
 
 -- ===== supabase/schema.sql =====
 -- Nafas Endurance database schema.
@@ -341,6 +341,14 @@ end $$;
 
 revoke execute on function take_stock(jsonb) from public, anon, authenticated;
 revoke execute on function return_stock(jsonb) from public, anon, authenticated;
+
+-- ===== supabase/migrations/007_brands.sql =====
+-- Brands for the moving strip on the home page. Run this once in Supabase > SQL Editor.
+-- is_brand = show this category in the brand strip; logo = link to its logo picture.
+alter table categories add column if not exists is_brand boolean not null default false;
+alter table categories add column if not exists logo text;
+
+notify pgrst, 'reload schema';
 
 -- ===== supabase/seed.sql =====
 -- Starting catalog for Nafas Endurance. Safe to run once after schema.sql.

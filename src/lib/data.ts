@@ -80,6 +80,12 @@ export async function getCategoryBySlug(slug: string) {
   return (await getCategories()).find((c) => c.slug === slug) ?? null;
 }
 
+/** Categories marked as brands; if none are marked yet, the main categories. */
+export function brandsOf(categories: Category[]): Category[] {
+  const marked = categories.filter((c) => c.is_brand);
+  return marked.length ? marked : categories.filter((c) => !c.parent_id);
+}
+
 export async function saveCategory(c: Omit<Category, "id"> & { id?: string }) {
   const s = db();
   if (!s) {
@@ -90,7 +96,15 @@ export async function saveCategory(c: Omit<Category, "id"> & { id?: string }) {
     return;
   }
   const { id, ...rest } = c;
-  const { error } = id ? await s.from("categories").update(rest).eq("id", id) : await s.from("categories").insert(rest);
+  const write = (row: Partial<Category>) => (id ? s.from("categories").update(row).eq("id", id) : s.from("categories").insert(row));
+  let { error } = await write(rest);
+  // Before supabase/migrations/007_brands.sql is run there are no is_brand / logo columns.
+  if (error && /(is_brand|logo)/.test(error.message)) {
+    if (c.is_brand || c.logo) throw new Error("To mark brands and add logos, the database needs a small update first: in Supabase open SQL Editor, paste supabase/migrations/007_brands.sql and press Run. Then save again.");
+    const { is_brand: _b, logo: _l, ...without } = rest;
+    void _b; void _l;
+    ({ error } = await write(without));
+  }
   fail(error);
 }
 

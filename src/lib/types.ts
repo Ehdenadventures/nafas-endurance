@@ -37,6 +37,10 @@ export type Category = {
   parent_id: string | null;
   sort: number;
   active: boolean;
+  /** Shown in the moving brand strip on the home page. */
+  is_brand?: boolean;
+  /** Brand logo picture shown in the brand strip. */
+  logo?: string | null;
 };
 
 export type Product = {

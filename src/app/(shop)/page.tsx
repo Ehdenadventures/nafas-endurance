@@ -3,7 +3,7 @@ import ProductCard, { cover } from "@/components/ProductCard";
 import HeroSlider from "@/components/HeroSlider";
 import BrandStrip from "@/components/BrandStrip";
 import Logo from "@/components/Logo";
-import { categoryTree, getCategories, getProducts } from "@/lib/data";
+import { brandsOf, categoryTree, getCategories, getProducts } from "@/lib/data";
 import { money, site } from "@/lib/site";
 
 export const revalidate = 60;
@@ -11,10 +11,13 @@ export const revalidate = 60;
 export default async function Home() {
   const [cats, products] = await Promise.all([getCategories(), getProducts()]);
   const top = cats.filter((c) => !c.parent_id);
+  const brands = brandsOf(cats);
+  const brandIds = new Set(brands.map((b) => b.id));
+  // The nearest brand above a product's category (or its main category if none is marked as a brand).
   const brandOf = (categoryId: string | null) => {
     let c = cats.find((x) => x.id === categoryId);
-    while (c?.parent_id) c = cats.find((x) => x.id === c!.parent_id);
-    return c?.name ?? "";
+    while (c && !brandIds.has(c.id) && c.parent_id) c = cats.find((x) => x.id === c!.parent_id);
+    return c && brandIds.has(c.id) ? c.name : "";
   };
   // One banner slide per product that has a photo, up to 6.
   const slides = products
@@ -49,10 +52,10 @@ export default async function Home() {
         }
       />
 
-      <BrandStrip brands={top} />
+      <BrandStrip brands={brands} />
 
       <section className="mt-12 grid gap-4 sm:grid-cols-3" aria-label="Brands">
-        {top.map((c) => {
+        {brands.map((c) => {
           const ids = categoryTree(cats, c.id);
           const n = products.filter((p) => p.category_id && ids.has(p.category_id)).length;
           const subs = cats.filter((s) => s.parent_id === c.id);

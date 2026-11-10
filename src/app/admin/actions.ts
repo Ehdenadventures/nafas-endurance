@@ -90,7 +90,7 @@ export async function deleteProductAction(id: string) {
 }
 
 /** Gives the browser a one-time URL to upload a photo or video straight to Supabase Storage. */
-export async function createUploadUrl(fileName: string, folder: "products" | "posts" = "products"): Promise<{ uploadUrl: string; publicUrl: string } | { error: string }> {
+export async function createUploadUrl(fileName: string, folder: "products" | "posts" | "brands" = "products"): Promise<{ uploadUrl: string; publicUrl: string } | { error: string }> {
   await requireAdmin();
   const s = db();
   if (!s) return { error: "Uploads need Supabase. Paste an image URL instead, or connect Supabase." };
@@ -158,6 +158,8 @@ export async function saveCategoryAction(fd: FormData) {
     parent_id,
     sort: Number(fd.get("sort") ?? 0) || 0,
     active: fd.get("active") === "on",
+    is_brand: fd.get("is_brand") === "on",
+    logo: /^https?:\/\//.test(String(fd.get("logo") ?? "")) ? String(fd.get("logo")) : null,
     });
   } catch (e) {
     redirect(`/admin/categories?error=${encodeURIComponent(`Couldn't save "${name}": ${(e as Error).message}`)}`);
