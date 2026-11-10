@@ -2,7 +2,7 @@ import "server-only";
 import seed from "./seed.json";
 import { db } from "./supabase";
 import { cleanDetails, cleanFeatures, cleanPackages, cleanVariants } from "./stock";
-import type { Category, Order, OrderItem, OrderStatus, Post, Product } from "./types";
+import type { BannerSettings, Category, Order, OrderItem, OrderStatus, Post, Product } from "./types";
 
 /*
  * All reads and writes go through this file.
@@ -10,7 +10,7 @@ import type { Category, Order, OrderItem, OrderStatus, Post, Product } from "./t
  * on an in-memory copy of src/lib/seed.json so the site still works.
  */
 
-type Demo = { categories: Category[]; products: Product[]; orders: Order[]; posts: Post[] };
+type Demo = { categories: Category[]; products: Product[]; orders: Order[]; posts: Post[]; settings: Record<string, unknown> };
 const g = globalThis as unknown as { __demo?: Demo };
 function demo(): Demo {
   if (!g.__demo) {
@@ -40,7 +40,7 @@ function demo(): Demo {
       features: [],
       media: (p.media ?? []) as Product["media"],
     }));
-    g.__demo = { categories, products, orders: [], posts: [] };
+    g.__demo = { categories, products, orders: [], posts: [], settings: {} };
   }
   return g.__demo;
 }
@@ -414,5 +414,41 @@ export async function deletePost(id: string) {
   const { error } = await s.from("posts").delete().eq("id", id);
   fail(error);
 }
+
+/* ---------------- site settings ---------------- */
+
+const BANNER_DEFAULT: BannerSettings = { image: "", opacity: 35, all: false };
+
+export function cleanBanner(raw: unknown): BannerSettings {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const image = typeof r.image === "string" && /^https?:\/\//.test(r.image) ? r.image : "";
+  const o = Number(r.opacity);
+  return { image, opacity: Number.isFinite(o) ? Math.max(0, Math.min(100, Math.round(o))) : BANNER_DEFAULT.opacity, all: !!r.all };
+}
+
+async function getSetting(key: string): Promise<unknown> {
+  const s = db();
+  if (!s) return demo().settings[key];
+  const { data, error } = await s.from("settings").select("value").eq("key", key).maybeSingle();
+  // Before supabase/migrations/008_settings.sql is run there is no settings table: use the defaults.
+  if (error && /settings/.test(error.message) && /(does not exist|schema cache)/i.test(error.message)) return undefined;
+  fail(error);
+  return data?.value;
+}
+
+async function saveSetting(key: string, value: unknown) {
+  const s = db();
+  if (!s) {
+    demo().settings[key] = value;
+    return;
+  }
+  const { error } = await s.from("settings").upsert({ key, value, updated_at: new Date().toISOString() });
+  if (error && /settings/.test(error.message) && /(does not exist|schema cache)/i.test(error.message))
+    throw new Error("The database needs a small update first: in Supabase open SQL Editor, paste supabase/migrations/008_settings.sql and press Run. Then save again.");
+  fail(error);
+}
+
+export const getBanner = async () => cleanBanner(await getSetting("banner"));
+export const saveBanner = (b: BannerSettings) => saveSetting("banner", cleanBanner(b));
 
 export type { OrderStatus };

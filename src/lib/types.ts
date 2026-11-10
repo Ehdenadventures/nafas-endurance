@@ -29,6 +29,9 @@ export type FeatureKey = (typeof FEATURES)[number]["key"];
 /** Tabs a new product starts with (empty ones are hidden on the shop). */
 export const DEFAULT_DETAILS = ["Description", "Ingredients", "Nutritional values", "What science says", "Claims", "Warnings"];
 
+/** Picture behind the home banner. opacity 0-100. all = also behind the first (main) slide. */
+export type BannerSettings = { image: string; opacity: number; all: boolean };
+
 export type Category = {
   id: string;
   slug: string;
