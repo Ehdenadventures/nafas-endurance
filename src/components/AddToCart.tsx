@@ -13,7 +13,7 @@ type Props = {
   stock: number | null;
   colours: Variant[];
   packages: Package[];
-  /** "print" for 3D printed items: says Colour and Size instead of Flavour and Packaging. */
+  /** "print" for other items (not gels): says Colour and Size instead of Flavour and Packaging. */
   kind?: string;
 };
 
@@ -114,9 +114,9 @@ export default function AddToCart(p: Props) {
       {p.packages.length > 0 && <p className="text-2xl font-bold text-accent" aria-live="polite">{money(price * qty)}</p>}
       {p.personalizable && (
         <div className="field">
-          <label htmlFor="pers">{p.kind === "print" ? "Name to print" : "Name or note"}</label>
+          <label htmlFor="pers">Name or note</label>
           <input id="pers" className="input" maxLength={30} value={text} onChange={(e) => setText(e.target.value)} placeholder="e.g. Chafic" />
-          <span className="text-xs text-ink-3">Up to 30 characters.{p.kind === "print" ? " We print it exactly as written." : ""}</span>
+          <span className="text-xs text-ink-3">Up to 30 characters.</span>
         </div>
       )}
       <div className="flex items-center gap-3">

@@ -12,7 +12,7 @@ export type CartLine = {
   personalization: string;
   colour?: string;
   package?: string;
-  /** "print" for 3D printed items (changes the words shown). */
+  /** "print" for other items (not gels) (changes the words shown). */
   kind?: string;
 };
 

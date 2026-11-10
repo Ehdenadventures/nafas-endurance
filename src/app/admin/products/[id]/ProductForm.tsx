@@ -133,7 +133,7 @@ export default function ProductForm({ product, categories, uploads }: { product:
             </label>
           ))}
         </div>
-        <span className="text-xs text-ink-3">{print ? "Customers pick a colour, and can type a name to print if you tick that below. No nutrition badges." : "Customers pick a flavour and packaging. Badges and nutrition tabs are shown."}</span>
+        <span className="text-xs text-ink-3">{print ? "Customers pick a colour and size, and can type a name or note if you tick that below. No nutrition badges." : "Customers pick a flavour and packaging. Badges and nutrition tabs are shown."}</span>
       </fieldset>
       <div className="field"><label htmlFor="name">Name</label><input id="name" className="input" value={f.name} onChange={set("name")} required /></div>
       <div className="grid gap-4 sm:grid-cols-3">
@@ -306,7 +306,7 @@ export default function ProductForm({ product, categories, uploads }: { product:
 
       <div className="flex flex-wrap gap-6">
         <label className="flex items-center gap-2"><input type="checkbox" checked={f.active} onChange={set("active")} className="h-4 w-4 accent-[var(--accent)]" /> Show on the shop</label>
-        <label className="flex items-center gap-2"><input type="checkbox" checked={f.personalizable} onChange={set("personalizable")} className="h-4 w-4 accent-[var(--accent)]" /> {print ? "Customer types a name to print" : "Customer adds a note"}</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={f.personalizable} onChange={set("personalizable")} className="h-4 w-4 accent-[var(--accent)]" /> Customer types a name or note</label>
       </div>
       <details className="text-sm">
         <summary className="cursor-pointer text-ink-2">Advanced</summary>

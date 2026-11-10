@@ -58,7 +58,7 @@ export default async function ProductPage({ params }: Props) {
             <p className="mt-3 text-sm font-semibold text-bad">Only {p.stock} left</p>
           )}
           {isSoldOut(p) ? (
-            <p className="mt-6 rounded-xl bg-surface-2 px-4 py-3 font-semibold">{print ? "Sold out for now. Message us on WhatsApp and we can print one for you." : "Sold out for now. Message us on WhatsApp and we will tell you when it is back."}</p>
+            <p className="mt-6 rounded-xl bg-surface-2 px-4 py-3 font-semibold">Sold out for now. Message us on WhatsApp and we will tell you when it is back.</p>
           ) : (
             <AddToCart productId={p.id} slug={p.slug} name={p.name} price={p.price} image={cover(p)} personalizable={p.personalizable} stock={p.stock} colours={p.variants} packages={p.packages} kind={p.kind} />
           )}
@@ -66,7 +66,7 @@ export default async function ProductPage({ params }: Props) {
             <li>• Pay cash on delivery</li>
             <li>• Delivery all over Lebanon with Wakilni</li>
             {print
-              ? <li>• Want another colour or size? Ask us on WhatsApp, or see <Link href="/custom" className="underline hover:text-ink">custom prints</Link></li>
+              ? <li>• Want another colour or size? Ask us on WhatsApp</li>
               : <li>• Not sure which gel fits your race? Ask us on WhatsApp</li>}
           </ul>
           {ask && (

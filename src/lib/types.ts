@@ -52,11 +52,11 @@ export type Category = {
 
 /** What kind of item a product is. It changes the words and sections the shop shows. */
 export const KINDS = [
-  { key: "nutrition", label: "Sports nutrition (gels, drinks, bars)", option: "Flavour" },
-  { key: "print", label: "3D printed item", option: "Colour" },
+  { key: "nutrition", label: "Gel / sports nutrition", option: "Flavour" },
+  { key: "print", label: "Other item (3D prints, accessories...)", option: "Colour" },
 ] as const;
 export type ProductKind = (typeof KINDS)[number]["key"];
-/** "Flavour" for nutrition, "Colour" for 3D prints. */
+/** "Flavour" for nutrition, "Colour" for other items. ("print" is the stored value for other items.) */
 export const optionLabel = (kind?: string | null) => (kind === "print" ? "Colour" : "Flavour");
 
 export type Product = {
