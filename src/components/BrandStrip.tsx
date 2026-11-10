@@ -15,7 +15,7 @@ function brandLogo(slug: string) {
 /** Strip under the banner that slowly scrolls through all brands. Each brand links to its page. */
 export default function BrandStrip({ brands }: { brands: Category[] }) {
   if (!brands.length) return null;
-  const items = brands.map((b) => ({ ...b, logo: brandLogo(b.slug) }));
+  const items = brands.map((b) => ({ ...b, logo: b.logo || brandLogo(b.slug) }));
   // Repeat the list so the strip is always full, then twice more so the loop is seamless.
   const reps = Math.max(1, Math.ceil(8 / items.length));
   const row = Array.from({ length: reps }, () => items).flat();

@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { getCategories } from "@/lib/data";
+import { brandsOf, getCategories } from "@/lib/data";
 import { site, whatsappLink } from "@/lib/site";
 import Logo from "./Logo";
 import { FacebookIcon, InstagramIcon, TikTokIcon, WhatsAppIcon } from "./Icons";
 
 export default async function Footer() {
-  const brands = (await getCategories()).filter((c) => !c.parent_id);
+  const brands = brandsOf(await getCategories());
   const wa = whatsappLink("Hi Nafas Endurance, I have a question");
   const social = [
     site.instagram && { href: `https://instagram.com/${site.instagram}`, label: `@${site.instagram}`, Icon: InstagramIcon },
