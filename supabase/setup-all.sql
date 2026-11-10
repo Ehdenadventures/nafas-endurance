@@ -1,5 +1,5 @@
 -- Nafas Endurance: full database setup in one go. Paste all of this into Supabase > SQL Editor and press Run.
--- It is schema.sql + migrations/002-007 + seed.sql, in order.
+-- It is schema.sql + migrations/002-008 + seed.sql, in order.
 
 -- ===== supabase/schema.sql =====
 -- Nafas Endurance database schema.
@@ -347,6 +347,17 @@ revoke execute on function return_stock(jsonb) from public, anon, authenticated;
 -- is_brand = show this category in the brand strip; logo = link to its logo picture.
 alter table categories add column if not exists is_brand boolean not null default false;
 alter table categories add column if not exists logo text;
+
+notify pgrst, 'reload schema';
+
+-- ===== supabase/migrations/008_settings.sql =====
+-- Site settings edited from the admin (e.g. the home banner background). Run once in Supabase > SQL Editor.
+create table if not exists settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+alter table settings enable row level security;
 
 notify pgrst, 'reload schema';
 

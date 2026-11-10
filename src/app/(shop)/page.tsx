@@ -3,13 +3,13 @@ import ProductCard, { cover } from "@/components/ProductCard";
 import HeroSlider from "@/components/HeroSlider";
 import BrandStrip from "@/components/BrandStrip";
 import Logo from "@/components/Logo";
-import { brandsOf, categoryTree, getCategories, getProducts } from "@/lib/data";
+import { brandsOf, categoryTree, getBanner, getCategories, getProducts } from "@/lib/data";
 import { money, site } from "@/lib/site";
 
 export const revalidate = 60;
 
 export default async function Home() {
-  const [cats, products] = await Promise.all([getCategories(), getProducts()]);
+  const [cats, products, banner] = await Promise.all([getCategories(), getProducts(), getBanner()]);
   const top = cats.filter((c) => !c.parent_id);
   const brands = brandsOf(cats);
   const brandIds = new Set(brands.map((b) => b.id));
@@ -28,6 +28,7 @@ export default async function Home() {
   return (
     <>
       <HeroSlider
+        background={banner}
         products={slides}
         main={
           <div className="min-h-[420px] px-6 py-12 sm:px-12 sm:py-16">
