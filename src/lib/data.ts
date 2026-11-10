@@ -2,7 +2,7 @@ import "server-only";
 import seed from "./seed.json";
 import { db } from "./supabase";
 import { cleanDetails, cleanFeatures, cleanPackages, cleanVariants } from "./stock";
-import type { BannerSettings, Category, Order, OrderItem, OrderStatus, Post, Product } from "./types";
+import type { BannerSettings, Category, SlideBackground, Order, OrderItem, OrderStatus, Post, Product } from "./types";
 
 /*
  * All reads and writes go through this file.
@@ -417,14 +417,30 @@ export async function deletePost(id: string) {
 
 /* ---------------- site settings ---------------- */
 
-const BANNER_DEFAULT: BannerSettings = { image: "", opacity: 35, all: false };
+const pct = (v: unknown, d: number) => {
+  const n = Number(v);
+  return v === null || v === undefined || v === "" || !Number.isFinite(n) ? d : Math.max(0, Math.min(100, Math.round(n)));
+};
+
+function cleanSlideBg(raw: unknown): SlideBackground {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const image = typeof r.image === "string" && /^https?:\/\//.test(r.image) ? r.image : "";
+  return { image, opacity: pct(r.opacity, 35), x: pct(r.x, 50), y: pct(r.y, 50) };
+}
 
 export function cleanBanner(raw: unknown): BannerSettings {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  const image = typeof r.image === "string" && /^https?:\/\//.test(r.image) ? r.image : "";
-  const o = Number(r.opacity);
-  return { image, opacity: Number.isFinite(o) ? Math.max(0, Math.min(100, Math.round(o))) : BANNER_DEFAULT.opacity, all: !!r.all };
+  const slides: Record<string, SlideBackground> = {};
+  if (r.slides && typeof r.slides === "object")
+    for (const [k, v] of Object.entries(r.slides as Record<string, unknown>).slice(0, 50)) {
+      const s = cleanSlideBg(v);
+      if (s.image) slides[k.slice(0, 64)] = s;
+    }
+  return { ...cleanSlideBg(r), all: !!r.all, slides };
 }
+
+/** The products shown as banner slides: the first 6 with a photo. */
+export const bannerProducts = (products: Product[]) => products.filter((p) => p.media.some((m) => m.type === "image")).slice(0, 6);
 
 async function getSetting(key: string): Promise<unknown> {
   const s = db();

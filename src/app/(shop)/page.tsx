@@ -3,7 +3,7 @@ import ProductCard, { cover } from "@/components/ProductCard";
 import HeroSlider from "@/components/HeroSlider";
 import BrandStrip from "@/components/BrandStrip";
 import Logo from "@/components/Logo";
-import { brandsOf, categoryTree, getBanner, getCategories, getProducts } from "@/lib/data";
+import { bannerProducts, brandsOf, categoryTree, getBanner, getCategories, getProducts } from "@/lib/data";
 import { money, site } from "@/lib/site";
 
 export const revalidate = 60;
@@ -19,12 +19,9 @@ export default async function Home() {
     while (c && !brandIds.has(c.id) && c.parent_id) c = cats.find((x) => x.id === c!.parent_id);
     return c && brandIds.has(c.id) ? c.name : "";
   };
-  // One banner slide per product that has a photo, up to 6.
-  const slides = products
-    .map((p) => ({ p, image: cover(p) }))
-    .filter((x): x is { p: typeof x.p; image: string } => !!x.image)
-    .slice(0, 6)
-    .map(({ p, image }) => ({ href: `/p/${p.slug}`, name: p.name, price: money(p.price), image, brand: brandOf(p.category_id) }));
+  // One banner slide per product that has a photo, up to 6 (same list as admin > Banner).
+  const slides = bannerProducts(products)
+    .map((p) => ({ id: p.id, href: `/p/${p.slug}`, name: p.name, price: money(p.price), image: cover(p)!, brand: brandOf(p.category_id) }));
   return (
     <>
       <HeroSlider

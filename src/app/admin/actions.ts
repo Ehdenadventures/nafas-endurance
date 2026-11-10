@@ -8,7 +8,7 @@ import {
 } from "@/lib/data";
 import { db, MEDIA_BUCKET } from "@/lib/supabase";
 import { cleanDetails, cleanFeatures, cleanPackages, cleanVariants } from "@/lib/stock";
-import { ORDER_STATUSES, type Detail, type FeatureKey, type Media, type OrderStatus, type Package, type Variant } from "@/lib/types";
+import { ORDER_STATUSES, type BannerSettings, type Detail, type FeatureKey, type Media, type OrderStatus, type Package, type Variant } from "@/lib/types";
 import { sendToWakilni } from "@/lib/wakilni";
 
 const slugify = (s: string) =>
@@ -105,7 +105,7 @@ export async function createUploadUrl(fileName: string, folder: "products" | "po
 
 /* ---------- look of the shop ---------- */
 
-export async function saveBannerAction(b: { image: string; opacity: number; all: boolean }): Promise<{ error?: string; ok?: boolean }> {
+export async function saveBannerAction(b: BannerSettings): Promise<{ error?: string; ok?: boolean }> {
   await requireAdmin();
   try {
     await saveBanner(b);

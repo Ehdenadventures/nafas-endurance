@@ -29,8 +29,12 @@ export type FeatureKey = (typeof FEATURES)[number]["key"];
 /** Tabs a new product starts with (empty ones are hidden on the shop). */
 export const DEFAULT_DETAILS = ["Description", "Ingredients", "Nutritional values", "What science says", "Claims", "Warnings"];
 
-/** Picture behind the home banner. opacity 0-100. all = also behind the first (main) slide. */
-export type BannerSettings = { image: string; opacity: number; all: boolean };
+/** A picture behind one banner slide. opacity 0-100; x and y 0-100 = which part of the picture stays in view. */
+export type SlideBackground = { image: string; opacity: number; x: number; y: number };
+
+/** Pictures behind the home banner: a default for every product slide (and the main slide if `all`),
+ *  plus one per slide ("main" or a product id) that replaces the default for that slide. */
+export type BannerSettings = SlideBackground & { all: boolean; slides: Record<string, SlideBackground> };
 
 export type Category = {
   id: string;
