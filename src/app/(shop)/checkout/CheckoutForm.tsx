@@ -1,4 +1,5 @@
 "use client";
+import { optionLabel } from "@/lib/types";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -57,7 +58,7 @@ export default function CheckoutForm({ deliveryFee }: { deliveryFee: number }) {
         <ul className="mt-3 space-y-2 text-sm">
           {lines.map((l) => (
             <li key={l.key} className="flex justify-between gap-2">
-              <span>{l.qty} × {l.name}{l.colour && <span className="block text-xs text-ink-3">Flavour: {l.colour}</span>}{l.package && <span className="block text-xs text-ink-3">Packaging: {l.package}</span>}{l.personalization && <span className="block text-xs text-ink-3">Name: {l.personalization}</span>}</span>
+              <span>{l.qty} × {l.name}{l.colour && <span className="block text-xs text-ink-3">{optionLabel(l.kind)}: {l.colour}</span>}{l.package && <span className="block text-xs text-ink-3">{l.kind === "print" ? "Size" : "Packaging"}: {l.package}</span>}{l.personalization && <span className="block text-xs text-ink-3">Name: {l.personalization}</span>}</span>
               <span className="font-semibold">{money(l.qty * l.price)}</span>
             </li>
           ))}

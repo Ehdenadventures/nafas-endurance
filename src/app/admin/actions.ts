@@ -42,6 +42,7 @@ export type ProductInput = {
   category_id: string | null;
   active: boolean;
   personalizable: boolean;
+  kind?: string;
   sort: number;
   stock: number | null;
   variants: Variant[];
@@ -71,9 +72,9 @@ export async function saveProductAction(p: ProductInput): Promise<{ error?: stri
   try {
     await saveProduct({
       id: p.id, name, slug, description: p.description.trim(), price: Math.round(price * 100) / 100,
-      category_id: p.category_id || null, active: !!p.active, personalizable: !!p.personalizable,
+      category_id: p.category_id || null, active: !!p.active, personalizable: !!p.personalizable, kind: p.kind === "print" ? "print" : "nutrition",
       sort: Math.floor(p.sort) || 0, stock, variants: cleanVariants(p.variants),
-      packages, details: cleanDetails(p.details).filter((d) => d.body), features: cleanFeatures(p.features), media,
+      packages, details: cleanDetails(p.details).filter((d) => d.body), features: p.kind === "print" ? [] : cleanFeatures(p.features), media,
     });
   } catch (e) {
     return { error: (e as Error).message };

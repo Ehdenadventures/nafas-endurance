@@ -32,6 +32,7 @@ function demo(): Demo {
       category_id: p.category,
       active: p.active,
       personalizable: p.personalizable,
+      kind: "nutrition",
       sort: p.sort,
       stock: null,
       variants: [],
@@ -53,6 +54,7 @@ const num = <T extends { price?: unknown; stock?: unknown; variants?: unknown; p
   packages: cleanPackages(r.packages),
   details: cleanDetails(r.details),
   features: cleanFeatures(r.features),
+  kind: (r as { kind?: unknown }).kind === "print" ? ("print" as const) : ("nutrition" as const),
   price: Number(r.price),
   stock: r.stock == null ? null : Number(r.stock),
 });
@@ -156,8 +158,16 @@ export async function saveProduct(p: Omit<Product, "id"> & { id?: string }) {
     else d.products.push({ ...p, id: p.slug });
     return;
   }
-  const { id, ...rest } = p;
-  const { error } = id ? await s.from("products").update(rest).eq("id", id) : await s.from("products").insert(rest);
+  const { id, ...all } = p;
+  const write = (row: Record<string, unknown>) => (id ? s.from("products").update(row).eq("id", id) : s.from("products").insert(row));
+  let { error } = await write(all);
+  // Before migration 009 there is no "kind" column: nutrition products still save, 3D prints need the update.
+  if (error && /kind/.test(error.message) && /(column|schema cache)/i.test(error.message)) {
+    if (all.kind === "print")
+      throw new Error("The database needs a small update first: in Supabase open SQL Editor, paste supabase/migrations/009_product_kind.sql and press Run. Then save again.");
+    const { kind: _k, ...rest } = all; // eslint-disable-line @typescript-eslint/no-unused-vars
+    ({ error } = await write(rest));
+  }
   if (error && /(packages|details|features)/.test(error.message) && /(column|schema cache)/i.test(error.message))
     throw new Error("The database needs a small update first: in Supabase open SQL Editor, paste supabase/migrations/005_product_details.sql and press Run. Then save again.");
   fail(error);

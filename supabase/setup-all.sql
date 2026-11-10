@@ -370,3 +370,9 @@ insert into categories (slug,name,description,parent_id,sort,active) values ('ul
 insert into products (slug,name,description,price,category_id,active,personalizable,sort,media) values ('ultimate-enduro-gel','Ultimate Enduro Gel','Energy gel for long efforts. Check the pack for flavour, size and nutrition facts.',3,(select id from categories where slug='ultimate-italia-gels'),true,false,0,'[]'::jsonb) on conflict (slug) do nothing;
 insert into products (slug,name,description,price,category_id,active,personalizable,sort,media) values ('ultimate-energel','Ultimate Energel','Quick energy gel for training and race day. Check the pack for flavour, size and nutrition facts.',3,(select id from categories where slug='ultimate-italia-gels'),true,false,1,'[]'::jsonb) on conflict (slug) do nothing;
 insert into products (slug,name,description,price,category_id,active,personalizable,sort,media) values ('ultimate-ultra-energy-gel','Ultimate Ultra Energy Gel','Energy gel for ultra distances. Check the pack for flavour, size and nutrition facts.',3,(select id from categories where slug='ultimate-italia-gels'),true,false,2,'[]'::jsonb) on conflict (slug) do nothing;
+
+-- 009: products can be sports nutrition or 3D printed items.
+-- "print" shows Colour instead of Flavour, hides the nutrition badges, and lets the customer type a name to print.
+alter table products add column if not exists kind text not null default 'nutrition';
+alter table products drop constraint if exists products_kind_check;
+alter table products add constraint products_kind_check check (kind in ('nutrition', 'print'));

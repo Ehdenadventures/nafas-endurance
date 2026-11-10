@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { DEFAULT_DETAILS, FEATURES, type FeatureKey, type Media, type Product } from "@/lib/types";
+import { DEFAULT_DETAILS, FEATURES, KINDS, type FeatureKey, type Media, type Product, type ProductKind } from "@/lib/types";
 import RichTextarea from "@/components/RichTextarea";
 import { createUploadUrl, deleteProductAction, saveProductAction } from "../../actions";
 
@@ -16,7 +16,13 @@ function startDetails(saved: DetailRow[]): DetailRow[] {
   return [...saved, ...DEFAULT_DETAILS.filter((t) => !have.has(t.toLowerCase())).map((title) => ({ title, body: "" }))];
 }
 
-const PRESETS: [string, string][] = [
+const PRINT_PRESETS: [string, string][] = [
+  ["Black", "#1c1c1c"], ["White", "#f4f4f4"], ["Grey", "#8a8d93"], ["Red", "#d32f2f"], ["Orange", "#ed632c"],
+  ["Yellow", "#f5c518"], ["Green", "#2e9e4f"], ["Blue", "#1e5bd8"], ["Navy", "#283189"], ["Purple", "#7b3fbf"],
+  ["Pink", "#ec6fa8"], ["Gold", "#c9a227"], ["Silver", "#b8bcc2"],
+];
+
+const FLAVOUR_PRESETS: [string, string][] = [
   ["Orange", "#f28c28"], ["Lemon", "#f2d32c"], ["Cola", "#5a2e1b"], ["Berries", "#8e2a6b"], ["Strawberry", "#d93445"],
   ["Apple", "#7cc242"], ["Mint", "#3fbf9f"], ["Tropical", "#ffb347"], ["Neutral", "#d9d4c7"], ["Caffeine", "#3b2a20"],
 ];
@@ -30,6 +36,7 @@ export default function ProductForm({ product, categories, uploads }: { product:
     category_id: product?.category_id ?? categories[0]?.id ?? "",
     active: product?.active ?? true,
     personalizable: product?.personalizable ?? false,
+    kind: (product?.kind ?? "nutrition") as ProductKind,
     sort: String(product?.sort ?? 0),
     stock: product?.stock == null ? "" : String(product.stock),
   });
@@ -49,6 +56,10 @@ export default function ProductForm({ product, categories, uploads }: { product:
     if (name && colours.some((c) => c.name.toLowerCase() === name.toLowerCase())) return;
     setColours((c) => [...c, { name, hex, stock: "", image: "" }]);
   };
+  const print = f.kind === "print";
+  const opt = print ? "colour" : "flavour";
+  const Opt = print ? "Colour" : "Flavour";
+  const PRESETS = print ? PRINT_PRESETS : FLAVOUR_PRESETS;
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
@@ -92,7 +103,7 @@ export default function ProductForm({ product, categories, uploads }: { product:
     start(async () => {
       const res = await saveProductAction({
         id: product?.id, name: f.name, slug: f.slug, description: f.description, price: Number(f.price),
-        category_id: f.category_id || null, active: f.active, personalizable: f.personalizable, sort: Number(f.sort),
+        category_id: f.category_id || null, active: f.active, personalizable: f.personalizable, kind: f.kind, sort: Number(f.sort),
         stock: colours.length || packs.length || f.stock.trim() === "" ? null : Number(f.stock),
         variants: colours.filter((c) => c.name.trim()).map((c) => ({ name: c.name.trim(), hex: c.hex, stock: c.stock.trim() === "" ? null : Number(c.stock), image: media.some((m) => m.url === c.image) ? c.image : undefined })),
         packages: packs.filter((x) => x.name.trim()).map((x) => ({ name: x.name.trim(), price: x.price.trim() === "" ? NaN : Number(x.price), units: Number(x.units) || 1,
@@ -112,6 +123,18 @@ export default function ProductForm({ product, categories, uploads }: { product:
         <h1 className="text-2xl font-bold">{product ? "Edit product" : "New product"}</h1>
         <Link href="/admin/products" className="text-sm text-ink-2 hover:text-ink">← All products</Link>
       </div>
+      <fieldset className="field">
+        <legend className="mb-1 text-sm font-semibold">Type of item</legend>
+        <div className="flex flex-wrap gap-2">
+          {KINDS.map((k) => (
+            <label key={k.key} className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${f.kind === k.key ? "border-accent ring-2 ring-accent" : "border-line hover:border-ink-3"}`}>
+              <input type="radio" name="kind" value={k.key} checked={f.kind === k.key} onChange={() => setF({ ...f, kind: k.key })} className="accent-[var(--accent)]" />
+              {k.label}
+            </label>
+          ))}
+        </div>
+        <span className="text-xs text-ink-3">{print ? "Customers pick a colour, and can type a name to print if you tick that below. No nutrition badges." : "Customers pick a flavour and packaging. Badges and nutrition tabs are shown."}</span>
+      </fieldset>
       <div className="field"><label htmlFor="name">Name</label><input id="name" className="input" value={f.name} onChange={set("name")} required /></div>
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="field"><label htmlFor="price">Price (USD)</label><input id="price" className="input" type="number" min="0" step="0.01" inputMode="decimal" value={packs.length ? "" : f.price} onChange={set("price")} required={!packs.length} disabled={packs.length > 0} placeholder={packs.length ? "Per packaging below" : ""} /></div>
@@ -121,21 +144,21 @@ export default function ProductForm({ product, categories, uploads }: { product:
             {categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
         </div>
-        <div className="field"><label htmlFor="stock">Stock</label><input id="stock" className="input" type="number" min="0" step="1" inputMode="numeric" value={colours.length || packs.length ? "" : f.stock} onChange={set("stock")} placeholder={packs.length ? "Per packaging below" : colours.length ? "Per flavour below" : "No limit"} disabled={colours.length > 0 || packs.length > 0} />
-          <span className="text-xs text-ink-3">{colours.length ? "This product has flavours, so stock is set for each flavour below." : "How many you have ready. Empty = no limit (made to order). 0 = sold out."}</span>
+        <div className="field"><label htmlFor="stock">Stock</label><input id="stock" className="input" type="number" min="0" step="1" inputMode="numeric" value={colours.length || packs.length ? "" : f.stock} onChange={set("stock")} placeholder={packs.length ? "Per option below" : colours.length ? `Per ${opt} below` : "No limit"} disabled={colours.length > 0 || packs.length > 0} />
+          <span className="text-xs text-ink-3">{colours.length ? `This product has ${opt}s, so stock is set for each ${opt} below.` : "How many you have ready. Empty = no limit (made to order). 0 = sold out."}</span>
         </div>
       </div>
       <fieldset className="rounded-2xl border border-line bg-surface p-4">
-        <legend className="px-1 text-sm font-semibold text-ink-2">Flavours</legend>
-        <p className="mb-3 text-xs text-ink-3">Optional. Add flavours if customers can choose one. {packs.length ? "Stock is set for each packaging below." : "Each flavour has its own stock (empty = no limit, 0 = sold out)."} {images.length ? "Tap a photo under a flavour to show it when that flavour is picked." : "Upload photos below, then you can link a photo to each flavour."}</p>
+        <legend className="px-1 text-sm font-semibold text-ink-2">{Opt}s</legend>
+        <p className="mb-3 text-xs text-ink-3">Optional. Add {opt}s if customers can choose one. {packs.length ? "Stock is set for each option below." : `Each ${opt} has its own stock (empty = no limit, 0 = sold out).`} {images.length ? `Tap a photo under a ${opt} to show it when that ${opt} is picked.` : `Upload photos below, then you can link a photo to each ${opt}.`}</p>
         {colours.length > 0 && (
           <div className="mb-3 space-y-3">
             {colours.map((c, i) => (
               <div key={i}>
               <div className="grid grid-cols-[3rem_minmax(0,1fr)_7.5rem_auto] items-center gap-2">
-                <input type="color" aria-label="Flavour colour" value={c.hex} onChange={(e) => setColour(i, { hex: e.target.value })} className="h-10 w-12 cursor-pointer rounded-lg border border-line bg-surface p-1" />
-                <input className="input" placeholder="Flavour name" aria-label="Flavour name" value={c.name} maxLength={40} onChange={(e) => setColour(i, { name: e.target.value })} />
-                <input className="input" type="number" min="0" step="1" inputMode="numeric" placeholder={packs.length ? "See packaging" : "No limit"} disabled={packs.length > 0} aria-label={`Stock for ${c.name || "this flavour"}`} value={packs.length ? "" : c.stock} onChange={(e) => setColour(i, { stock: e.target.value })} />
+                <input type="color" aria-label={`${Opt} swatch`} value={c.hex} onChange={(e) => setColour(i, { hex: e.target.value })} className="h-10 w-12 cursor-pointer rounded-lg border border-line bg-surface p-1" />
+                <input className="input" placeholder={`${Opt} name`} aria-label={`${Opt} name`} value={c.name} maxLength={40} onChange={(e) => setColour(i, { name: e.target.value })} />
+                <input className="input" type="number" min="0" step="1" inputMode="numeric" placeholder={packs.length ? "See packaging" : "No limit"} disabled={packs.length > 0} aria-label={`Stock for ${c.name || `this ${opt}`}`} value={packs.length ? "" : c.stock} onChange={(e) => setColour(i, { stock: e.target.value })} />
                 <button type="button" className="px-2 text-sm text-bad" onClick={() => setColours(colours.filter((_, j) => j !== i))}>Remove</button>
               </div>
               {images.length > 0 && (
@@ -143,7 +166,7 @@ export default function ProductForm({ product, categories, uploads }: { product:
                   <span className="mr-1 text-xs text-ink-3">Photo:</span>
                   {images.map((m, k) => (
                     <button key={m.url} type="button" onClick={() => setColour(i, { image: c.image === m.url ? "" : m.url })}
-                      aria-label={`Use photo ${k + 1} for ${c.name || "this flavour"}`} aria-pressed={c.image === m.url}
+                      aria-label={`Use photo ${k + 1} for ${c.name || `this ${opt}`}`} aria-pressed={c.image === m.url}
                       className={`h-9 w-9 shrink-0 overflow-hidden rounded-md border-2 ${c.image === m.url ? "border-accent" : "border-transparent opacity-60 hover:opacity-100"}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={m.url} alt="" className="h-full w-full object-cover" />
@@ -161,13 +184,13 @@ export default function ProductForm({ product, categories, uploads }: { product:
               <span className="h-3.5 w-3.5 rounded-full border border-line" style={{ background: h }} /> {n}
             </button>
           ))}
-          <button type="button" onClick={() => addColour()} className="rounded-full border border-dashed border-ink-3 px-3 py-1 text-sm">+ Other flavour</button>
+          <button type="button" onClick={() => addColour()} className="rounded-full border border-dashed border-ink-3 px-3 py-1 text-sm">+ Other {opt}</button>
         </div>
       </fieldset>
 
       <fieldset className="rounded-2xl border border-line bg-surface p-4">
-        <legend className="px-1 text-sm font-semibold text-ink-2">Packaging</legend>
-        <p className="mb-3 text-xs text-ink-3">Optional. Add one row for each way you sell it, each with its own price, e.g. &quot;1 gel&quot; at 2.20 and &quot;Box of 24&quot; at 52.80. &quot;Pieces&quot; is how many gels are inside (used to show the price per gel). Each packaging has its own stock for each flavour: empty = no limit, 0 = sold out. Leave empty to sell one by one at the price above. {images.length ? "Tap a photo under a packaging to show it when a customer picks that packaging (and flavour)." : "Upload photos below, then you can link a photo to each packaging."}</p>
+        <legend className="px-1 text-sm font-semibold text-ink-2">{print ? "Sizes or sets" : "Packaging"}</legend>
+        {print ? <p className="mb-3 text-xs text-ink-3">Optional. Add one row for each size or set you sell, each with its own price, e.g. &quot;Small&quot; at 5 and &quot;Large&quot; at 9, or &quot;Set of 4&quot; with Pieces 4. Each row has its own stock for each colour: empty = no limit (made to order), 0 = sold out. Leave empty to sell one by one at the price above.</p> : <p className="mb-3 text-xs text-ink-3">Optional. Add one row for each way you sell it, each with its own price, e.g. &quot;1 gel&quot; at 2.20 and &quot;Box of 24&quot; at 52.80. &quot;Pieces&quot; is how many gels are inside (used to show the price per gel). Each packaging has its own stock for each flavour: empty = no limit, 0 = sold out. Leave empty to sell one by one at the price above. {images.length ? "Tap a photo under a packaging to show it when a customer picks that packaging (and flavour)." : "Upload photos below, then you can link a photo to each packaging."}</p>}
         {packs.length > 0 && (
           <div className="mb-3 space-y-2">
             <div className="grid grid-cols-[minmax(0,1fr)_6rem_5rem_auto] gap-2 text-xs text-ink-3"><span>Name</span><span>Price (USD)</span><span>Pieces</span><span /></div>
@@ -207,14 +230,14 @@ export default function ProductForm({ product, categories, uploads }: { product:
           </div>
         )}
         <div className="flex flex-wrap gap-2">
-          {!packs.length && <button type="button" onClick={() => setPacks([{ name: "1 gel", price: f.price, units: "1", images: {}, stock: {} }, { name: "Box of 24", price: "", units: "24", images: {}, stock: {} }])} className="rounded-full border border-line px-3 py-1 text-sm hover:border-ink-3">1 gel + Box of 24</button>}
+          {!packs.length && !print && <button type="button" onClick={() => setPacks([{ name: "1 gel", price: f.price, units: "1", images: {}, stock: {} }, { name: "Box of 24", price: "", units: "24", images: {}, stock: {} }])} className="rounded-full border border-line px-3 py-1 text-sm hover:border-ink-3">1 gel + Box of 24</button>}
           <button type="button" onClick={() => setPacks([...packs, { name: "", price: "", units: "1", images: {}, stock: {} }])} className="rounded-full border border-dashed border-ink-3 px-3 py-1 text-sm">+ Add packaging</button>
         </div>
       </fieldset>
 
       <div className="field"><label htmlFor="desc">Short description (next to the photo)</label><RichTextarea id="desc" rows={4} value={f.description} onChange={(v) => setF({ ...f, description: v })} /></div>
 
-      <fieldset className="rounded-2xl border border-line bg-surface p-4">
+      {!print && <fieldset className="rounded-2xl border border-line bg-surface p-4">
         <legend className="px-1 text-sm font-semibold text-ink-2">Badges</legend>
         <p className="mb-3 text-xs text-ink-3">Tick what applies. The others show faded on the product page. Leave all empty to hide the badges.</p>
         <div className="flex flex-wrap gap-x-6 gap-y-2">
@@ -226,13 +249,13 @@ export default function ProductForm({ product, categories, uploads }: { product:
             </label>
           ))}
         </div>
-      </fieldset>
+      </fieldset>}
 
       <fieldset className="rounded-2xl border border-line bg-surface p-4">
         <legend className="px-1 text-sm font-semibold text-ink-2">Information tabs</legend>
         <p className="mb-3 text-xs text-ink-3">Shown as tabs under the product. Empty tabs are hidden. For a table (like nutritional values), put | between columns, one row per line, e.g. <code>Energy | 100 kcal | 50 kcal</code>. The first row is the header.</p>
         <div className="space-y-3">
-          {details.map((d, i) => (
+          {details.map((d, i) => print && !d.body.trim() && DEFAULT_DETAILS.slice(1).includes(d.title) ? null : (
             <details key={i} className="rounded-xl border border-line">
               <summary className="cursor-pointer px-3 py-2 text-sm font-semibold">{d.title || "New tab"}{d.body.trim() ? "" : <span className="font-normal text-ink-3"> (empty)</span>}</summary>
               <div className="space-y-2 px-3 pb-3">
@@ -283,7 +306,7 @@ export default function ProductForm({ product, categories, uploads }: { product:
 
       <div className="flex flex-wrap gap-6">
         <label className="flex items-center gap-2"><input type="checkbox" checked={f.active} onChange={set("active")} className="h-4 w-4 accent-[var(--accent)]" /> Show on the shop</label>
-        <label className="flex items-center gap-2"><input type="checkbox" checked={f.personalizable} onChange={set("personalizable")} className="h-4 w-4 accent-[var(--accent)]" /> Customer adds a note</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={f.personalizable} onChange={set("personalizable")} className="h-4 w-4 accent-[var(--accent)]" /> {print ? "Customer types a name to print" : "Customer adds a note"}</label>
       </div>
       <details className="text-sm">
         <summary className="cursor-pointer text-ink-2">Advanced</summary>
