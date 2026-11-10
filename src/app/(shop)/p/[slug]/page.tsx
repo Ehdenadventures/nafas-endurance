@@ -38,6 +38,7 @@ export default async function ProductPage({ params }: Props) {
   // Start on a flavour and packaging that are in stock.
   const firstColour = p.variants.find((v) => p.packages.length ? p.packages.some((pk) => packStock(pk, v.name) !== 0) : v.stock !== 0)?.name ?? "";
   const firstPack = p.packages.find((pk) => stockFor(p, firstColour, pk.name) !== 0)?.name ?? p.packages[0]?.name ?? "";
+  const print = p.kind === "print";
   const ask = whatsappLink(`Hi ${site.name}, I have a question about "${p.name}" (${site.url}/p/${p.slug})`);
 
   return (
@@ -57,14 +58,16 @@ export default async function ProductPage({ params }: Props) {
             <p className="mt-3 text-sm font-semibold text-bad">Only {p.stock} left</p>
           )}
           {isSoldOut(p) ? (
-            <p className="mt-6 rounded-xl bg-surface-2 px-4 py-3 font-semibold">Sold out for now. Message us on WhatsApp and we will tell you when it is back.</p>
+            <p className="mt-6 rounded-xl bg-surface-2 px-4 py-3 font-semibold">{print ? "Sold out for now. Message us on WhatsApp and we can print one for you." : "Sold out for now. Message us on WhatsApp and we will tell you when it is back."}</p>
           ) : (
-            <AddToCart productId={p.id} slug={p.slug} name={p.name} price={p.price} image={cover(p)} personalizable={p.personalizable} stock={p.stock} colours={p.variants} packages={p.packages} />
+            <AddToCart productId={p.id} slug={p.slug} name={p.name} price={p.price} image={cover(p)} personalizable={p.personalizable} stock={p.stock} colours={p.variants} packages={p.packages} kind={p.kind} />
           )}
           <ul className="mt-6 space-y-1 text-sm text-ink-2">
             <li>• Pay cash on delivery</li>
             <li>• Delivery all over Lebanon with Wakilni</li>
-            <li>• Not sure which gel fits your race? Ask us on WhatsApp</li>
+            {print
+              ? <li>• Want another colour or size? Ask us on WhatsApp, or see <Link href="/custom" className="underline hover:text-ink">custom prints</Link></li>
+              : <li>• Not sure which gel fits your race? Ask us on WhatsApp</li>}
           </ul>
           {ask && (
             <a href={ask} target="_blank" rel="noopener noreferrer" className="btn mt-4">
@@ -74,7 +77,7 @@ export default async function ProductPage({ params }: Props) {
         </div>
       </div>
       </ColourProvider>
-      <FeatureBadges features={p.features} />
+      {!print && <FeatureBadges features={p.features} />}
       <ProductTabs details={p.details} />
       {related.length > 0 && (
         <section className="mt-14">

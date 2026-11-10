@@ -1,4 +1,5 @@
 "use client";
+import { optionLabel } from "@/lib/types";
 import Link from "next/link";
 import { useCart } from "@/components/CartProvider";
 import { CubeIcon } from "@/components/Icons";
@@ -31,8 +32,8 @@ export default function CartPage() {
             </div>
             <div className="min-w-0 flex-1">
               <Link href={`/p/${l.slug}`} className="font-semibold hover:underline">{l.name}</Link>
-              {l.colour && <p className="text-sm text-ink-2">Flavour: {l.colour}</p>}
-              {l.package && <p className="text-sm text-ink-2">Packaging: {l.package}</p>}
+              {l.colour && <p className="text-sm text-ink-2">{optionLabel(l.kind)}: {l.colour}</p>}
+              {l.package && <p className="text-sm text-ink-2">{l.kind === "print" ? "Size" : "Packaging"}: {l.package}</p>}
               {l.personalization && <p className="text-sm text-ink-2">Name: {l.personalization}</p>}
               <p className="text-sm text-ink-3">{money(l.price)} each</p>
               <div className="mt-2 flex items-center gap-3">

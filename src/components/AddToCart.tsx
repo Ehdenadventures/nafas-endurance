@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import type { Package, Variant } from "@/lib/types";
+import { optionLabel, type Package, type Variant } from "@/lib/types";
 import { money } from "@/lib/site";
 import { packStock, photoFor } from "@/lib/stock";
 import { useCart } from "./CartProvider";
@@ -13,6 +13,8 @@ type Props = {
   stock: number | null;
   colours: Variant[];
   packages: Package[];
+  /** "print" for 3D printed items: says Colour and Size instead of Flavour and Packaging. */
+  kind?: string;
 };
 
 export default function AddToCart(p: Props) {
@@ -33,7 +35,9 @@ export default function AddToCart(p: Props) {
   const flavourKey = p.colours.length ? colour : "";
   // With packaging, each packaging has its own stock per flavour.
   const leftFor = (pk: Package | undefined, flav: string) =>
-    p.packages.length ? (pk ? packStock(pk, flav) : 0) : p.colours.length ? (p.colours.find((c) => c.name === flav)?.stock ?? 0) : p.stock;
+    p.packages.length ? (pk ? packStock(pk, flav) : 0) : p.colours.length ? stockOf(flav) : p.stock;
+  // A flavour with no stock number set has no limit (null); an unknown flavour has none.
+  function stockOf(flav: string) { const c = p.colours.find((x) => x.name === flav); return c ? c.stock : 0; }
   const flavourOut = (flav: string) => (p.packages.length ? p.packages.every((pk) => packStock(pk, flav) === 0) : p.colours.find((c) => c.name === flav)?.stock === 0);
   const left = p.colours.length && !chosen ? 0 : leftFor(pack, flavourKey);
   const max = Math.min(99, left ?? 99);
@@ -45,7 +49,7 @@ export default function AddToCart(p: Props) {
       {p.colours.length > 0 && (
         <fieldset>
           <legend className="mb-2 text-sm font-semibold">
-            Flavour: <span className="font-normal text-ink-2">{colour || "choose one"}</span>
+            {optionLabel(p.kind)}: <span className="font-normal text-ink-2">{colour || "choose one"}</span>
           </legend>
           <div className="flex flex-wrap gap-2">
             {p.colours.map((c) => {
@@ -82,7 +86,7 @@ export default function AddToCart(p: Props) {
       )}
       {p.packages.length > 0 && (
         <fieldset>
-          <legend className="mb-2 text-sm font-semibold">Packaging</legend>
+          <legend className="mb-2 text-sm font-semibold">{p.kind === "print" ? "Size" : "Packaging"}</legend>
           <div className="flex flex-wrap gap-2">
             {p.packages.map((x) => {
               const on = x.name === packName;
@@ -110,9 +114,9 @@ export default function AddToCart(p: Props) {
       {p.packages.length > 0 && <p className="text-2xl font-bold text-accent" aria-live="polite">{money(price * qty)}</p>}
       {p.personalizable && (
         <div className="field">
-          <label htmlFor="pers">Name or note</label>
+          <label htmlFor="pers">{p.kind === "print" ? "Name to print" : "Name or note"}</label>
           <input id="pers" className="input" maxLength={30} value={text} onChange={(e) => setText(e.target.value)} placeholder="e.g. Chafic" />
-          <span className="text-xs text-ink-3">Up to 30 characters.</span>
+          <span className="text-xs text-ink-3">Up to 30 characters.{p.kind === "print" ? " We print it exactly as written." : ""}</span>
         </div>
       )}
       <div className="flex items-center gap-3">
@@ -125,7 +129,7 @@ export default function AddToCart(p: Props) {
           className="btn btn-primary flex-1"
           disabled={blocked}
           onClick={() => {
-            add({ productId: p.productId, slug: p.slug, name: p.name, price, image: photoFor({ variants: p.colours, packages: p.packages }, colour, packName) ?? p.image, personalization: text, colour: chosen?.name, package: pack?.name }, qty);
+            add({ productId: p.productId, slug: p.slug, name: p.name, price, image: photoFor({ variants: p.colours, packages: p.packages }, colour, packName) ?? p.image, personalization: text, colour: chosen?.name, package: pack?.name, kind: p.kind }, qty);
             setAdded(true);
           }}
         >

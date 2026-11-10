@@ -50,6 +50,15 @@ export type Category = {
   logo?: string | null;
 };
 
+/** What kind of item a product is. It changes the words and sections the shop shows. */
+export const KINDS = [
+  { key: "nutrition", label: "Sports nutrition (gels, drinks, bars)", option: "Flavour" },
+  { key: "print", label: "3D printed item", option: "Colour" },
+] as const;
+export type ProductKind = (typeof KINDS)[number]["key"];
+/** "Flavour" for nutrition, "Colour" for 3D prints. */
+export const optionLabel = (kind?: string | null) => (kind === "print" ? "Colour" : "Flavour");
+
 export type Product = {
   id: string;
   slug: string;
@@ -59,6 +68,8 @@ export type Product = {
   category_id: string | null;
   active: boolean;
   personalizable: boolean;
+  /** Missing = "nutrition" (before migration 009). */
+  kind?: ProductKind;
   sort: number;
   /** How many are ready to sell. null = no limit (made to order). */
   stock: number | null;

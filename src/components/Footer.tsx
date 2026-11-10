@@ -25,6 +25,7 @@ export default async function Footer() {
           <ul className="mt-2 space-y-1 text-ink-2">
             {brands.map((c) => <li key={c.id}><Link href={`/c/${c.slug}`} className="hover:text-ink">{c.name}</Link></li>)}
             <li><Link href="/ig" className="hover:text-ink">Shop our Instagram</Link></li>
+            <li><Link href="/custom" className="hover:text-ink">Custom 3D prints</Link></li>
           </ul>
         </div>
         <div className="text-sm">

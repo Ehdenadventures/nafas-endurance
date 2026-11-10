@@ -12,6 +12,8 @@ export type CartLine = {
   personalization: string;
   colour?: string;
   package?: string;
+  /** "print" for 3D printed items (changes the words shown). */
+  kind?: string;
 };
 
 type Cart = {
