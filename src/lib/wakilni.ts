@@ -14,10 +14,12 @@ const cfg = () => ({
   base: process.env.WAKILNI_BASE_URL || "https://api-dev.wakilni.com",
   key: process.env.WAKILNI_KEY || "",
   secret: process.env.WAKILNI_SECRET || "",
-  pickupLocationId: Number(process.env.WAKILNI_PICKUP_LOCATION_ID || 1),
-  pickupArea: process.env.WAKILNI_PICKUP_AREA || "",
-  pickupLat: Number(process.env.WAKILNI_PICKUP_LAT || 0),
-  pickupLng: Number(process.env.WAKILNI_PICKUP_LNG || 0),
+  // Pickup: the 3D PrintLab shop, Zgharta main street (Slayib), ground floor. Both shops ship from here.
+  // Each value can still be overridden in Vercel with the WAKILNI_PICKUP_* variables.
+  pickupLocationId: process.env.WAKILNI_PICKUP_LOCATION_ID ? Number(process.env.WAKILNI_PICKUP_LOCATION_ID) : undefined,
+  pickupArea: process.env.WAKILNI_PICKUP_AREA || "Zgharta",
+  pickupLat: Number(process.env.WAKILNI_PICKUP_LAT || 34.397375),
+  pickupLng: Number(process.env.WAKILNI_PICKUP_LNG || 35.894752),
   pickupFloor: Number(process.env.WAKILNI_PICKUP_FLOOR || 0),
 });
 
@@ -80,7 +82,7 @@ export async function sendToWakilni(order: Order): Promise<string> {
   const bulk = await call(
     "POST",
     `${c.base}/api/v2/clients/start_bulk`,
-    { location_id: c.pickupLocationId, longitude: c.pickupLng, latitude: c.pickupLat, floor: c.pickupFloor, area: c.pickupArea },
+    { ...(c.pickupLocationId ? { location_id: c.pickupLocationId } : {}), longitude: c.pickupLng, latitude: c.pickupLat, floor: c.pickupFloor, area: c.pickupArea },
     token,
   );
   const bulkId = bulk.bulk_id;
