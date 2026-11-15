@@ -361,6 +361,17 @@ export async function updateOrder(
   fail(error);
 }
 
+export async function deleteOrder(id: string) {
+  const s = db();
+  if (!s) {
+    const d = demo();
+    d.orders = d.orders.filter((o) => o.id !== id);
+    return;
+  }
+  const { error } = await s.from("orders").delete().eq("id", id);
+  fail(error);
+}
+
 /* ---------------- Instagram posts ---------------- */
 
 const normalizePost = (r: Record<string, unknown>) =>
