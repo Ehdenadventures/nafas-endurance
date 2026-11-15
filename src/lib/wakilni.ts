@@ -107,7 +107,9 @@ export async function sendToWakilni(order: Order): Promise<string> {
     `${c.base}/api/v2/clients/add_delivery/${bulkId}`,
     {
       get_order_details: true,
-      waybill: order.number,
+      waybill: `NAF-${order.number}`, // Wakilni wants a string; the prefix keeps both shops' numbers apart
+      // Wakilni requires a number for the customer in our shop: the phone's last 8 digits, so repeat customers match.
+      receiver_id: Number(order.phone.replace(/\D/g, "").slice(-8)) || order.number,
       receiver_first_name: first,
       receiver_last_name: last,
       receiver_phone_number: order.phone,
