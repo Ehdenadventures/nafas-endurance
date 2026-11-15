@@ -34,6 +34,7 @@ export default function CartPage() {
               <Link href={`/p/${l.slug}`} className="font-semibold hover:underline">{l.name}</Link>
               {l.colour && <p className="text-sm text-ink-2">{optionLabel(l.kind)}: {l.colour}</p>}
               {l.package && <p className="text-sm text-ink-2">{l.kind === "print" ? "Size" : "Packaging"}: {l.package}</p>}
+              {l.options?.map((o) => <p key={o.name} className="text-sm text-ink-2">{o.name}: {o.value}</p>)}
               {l.personalization && <p className="text-sm text-ink-2">Name: {l.personalization}</p>}
               <p className="text-sm text-ink-3">{money(l.price)} each</p>
               <div className="mt-2 flex items-center gap-3">

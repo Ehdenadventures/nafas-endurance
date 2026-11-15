@@ -2,8 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { createOrder, getProductById, OutOfStockError, returnStock, takeStock, updateOrder } from "@/lib/data";
 import { site } from "@/lib/site";
-import { hasColours, stockFor } from "@/lib/stock";
-import type { OrderItem } from "@/lib/types";
+import { hasColours, stockFor, unitPrice } from "@/lib/stock";
+import type { OrderItem, PickedOption } from "@/lib/types";
 import { sendToWakilni, wakilniAutoSend } from "@/lib/wakilni";
 
 export type CheckoutInput = {
@@ -12,7 +12,7 @@ export type CheckoutInput = {
   city: string;
   address: string;
   notes: string;
-  items: { productId: string; qty: number; personalization: string; colour?: string; package?: string }[];
+  items: { productId: string; qty: number; personalization: string; colour?: string; package?: string; options?: { name: string; value: string }[] }[];
 };
 
 export type CheckoutResult = { ok: true; orderId: string } | { ok: false; error: string };
@@ -48,6 +48,16 @@ export async function placeOrder(input: CheckoutInput): Promise<CheckoutResult> 
       pack = p.packages.find((x) => x.name === clean(it.package, 40));
       if (!pack) return { ok: false, error: `Please choose a packaging for "${p.name}". Remove it from your cart and add it again.` };
     }
+    // Every price option needs one of its choices; the price comes from the database.
+    const sent = Array.isArray(it.options) ? it.options : [];
+    const options: PickedOption[] = [];
+    for (const o of p.options) {
+      const value = o.choices.find((c) => c.name === clean(sent.find((k) => clean(k?.name, 40) === o.name)?.value, 40))?.name;
+      if (!value) return { ok: false, error: `Please choose a ${o.name.toLowerCase()} for "${p.name}". Remove it from your cart and add it again.` };
+      options.push({ name: o.name, value });
+    }
+    const price = unitPrice(p, colour, pack?.name, options);
+    if (price === null) return { ok: false, error: `Please choose your options for "${p.name}" again.` };
     const label = [p.name, colour, pack?.name].filter(Boolean).join(" · ");
     const left = stockFor(p, colour, pack?.name);
     if (left !== null && left > 0 && left < qty)
@@ -55,8 +65,8 @@ export async function placeOrder(input: CheckoutInput): Promise<CheckoutResult> 
     if (left === 0) return { ok: false, error: `Sorry, "${label}" is sold out. Please remove it from your cart.` };
     if (left !== null) tracksStock = true;
     items.push({
-      product_id: p.id, slug: p.slug, name: p.name, price: pack ? pack.price : p.price, qty, personalization,
-      ...(colour ? { colour } : {}), ...(pack ? { package: pack.name, units: pack.units } : {}),
+      product_id: p.id, slug: p.slug, name: p.name, price, qty, personalization,
+      ...(colour ? { colour } : {}), ...(pack ? { package: pack.name, units: pack.units } : {}), ...(options.length ? { options } : {}),
     });
   }
   const subtotal = Math.round(items.reduce((a, i) => a + i.price * i.qty, 0) * 100) / 100;

@@ -6,7 +6,8 @@ import RichTextarea from "@/components/RichTextarea";
 import { createUploadUrl, deleteProductAction, saveProductAction } from "../../actions";
 
 type Opt = { id: string; label: string };
-type ColourRow = { name: string; hex: string; stock: string; image: string };
+type ColourRow = { name: string; hex: string; stock: string; image: string; extra: string };
+type OptionRow = { name: string; choices: { name: string; extra: string }[] };
 type PackRow = { name: string; price: string; units: string; images: Record<string, string>; stock: Record<string, string> };
 type DetailRow = { title: string; body: string };
 
@@ -21,6 +22,9 @@ const PRINT_PRESETS: [string, string][] = [
   ["Yellow", "#f5c518"], ["Green", "#2e9e4f"], ["Blue", "#1e5bd8"], ["Navy", "#283189"], ["Purple", "#7b3fbf"],
   ["Pink", "#ec6fa8"], ["Gold", "#c9a227"], ["Silver", "#b8bcc2"],
 ];
+
+/** Starting filament types for a 3D printed item (extra price filled in by the admin). */
+const FILAMENT_PRESET: OptionRow = { name: "Filament type", choices: [{ name: "PLA", extra: "" }, { name: "PETG", extra: "" }, { name: "Silk PLA", extra: "" }] };
 
 const FLAVOUR_PRESETS: [string, string][] = [
   ["Orange", "#f28c28"], ["Lemon", "#f2d32c"], ["Cola", "#5a2e1b"], ["Berries", "#8e2a6b"], ["Strawberry", "#d93445"],
@@ -42,7 +46,7 @@ export default function ProductForm({ product, categories, uploads }: { product:
   });
   const [media, setMedia] = useState<Media[]>(product?.media ?? []);
   const [colours, setColours] = useState<ColourRow[]>(
-    (product?.variants ?? []).map((v) => ({ name: v.name, hex: v.hex, stock: v.stock == null ? "" : String(v.stock), image: v.image ?? "" })),
+    (product?.variants ?? []).map((v) => ({ name: v.name, hex: v.hex, stock: v.stock == null ? "" : String(v.stock), image: v.image ?? "", extra: v.extra ? String(v.extra) : "" })),
   );
   const [packs, setPacks] = useState<PackRow[]>((product?.packages ?? []).map((x) => ({ name: x.name, price: String(x.price), units: String(x.units), images: x.images ?? {},
       stock: Object.fromEntries(Object.entries(x.stock ?? {}).map(([k, v]) => [k, v == null ? "" : String(v)])) })));
@@ -54,8 +58,12 @@ export default function ProductForm({ product, categories, uploads }: { product:
   const setColour = (i: number, patch: Partial<ColourRow>) => setColours((c) => c.map((x, j) => (j === i ? { ...x, ...patch } : x)));
   const addColour = (name = "", hex = "#888888") => {
     if (name && colours.some((c) => c.name.toLowerCase() === name.toLowerCase())) return;
-    setColours((c) => [...c, { name, hex, stock: "", image: "" }]);
+    setColours((c) => [...c, { name, hex, stock: "", image: "", extra: "" }]);
   };
+  const [opts, setOpts] = useState<OptionRow[]>((product?.options ?? []).map((o) => ({ name: o.name, choices: o.choices.map((c) => ({ name: c.name, extra: c.extra ? String(c.extra) : "" })) })));
+  const setOpt = (i: number, patch: Partial<OptionRow>) => setOpts((c) => c.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const setChoice = (i: number, k: number, patch: Partial<OptionRow["choices"][number]>) =>
+    setOpt(i, { choices: opts[i].choices.map((c, j) => (j === k ? { ...c, ...patch } : c)) });
   const print = f.kind === "print";
   const opt = print ? "colour" : "flavour";
   const Opt = print ? "Colour" : "Flavour";
@@ -105,10 +113,12 @@ export default function ProductForm({ product, categories, uploads }: { product:
         id: product?.id, name: f.name, slug: f.slug, description: f.description, price: Number(f.price),
         category_id: f.category_id || null, active: f.active, personalizable: f.personalizable, kind: f.kind, sort: Number(f.sort),
         stock: colours.length || packs.length || f.stock.trim() === "" ? null : Number(f.stock),
-        variants: colours.filter((c) => c.name.trim()).map((c) => ({ name: c.name.trim(), hex: c.hex, stock: c.stock.trim() === "" ? null : Number(c.stock), image: media.some((m) => m.url === c.image) ? c.image : undefined })),
+        variants: colours.filter((c) => c.name.trim()).map((c) => ({ name: c.name.trim(), hex: c.hex, stock: c.stock.trim() === "" ? null : Number(c.stock), image: media.some((m) => m.url === c.image) ? c.image : undefined, extra: Number(c.extra) || 0 })),
         packages: packs.filter((x) => x.name.trim()).map((x) => ({ name: x.name.trim(), price: x.price.trim() === "" ? NaN : Number(x.price), units: Number(x.units) || 1,
           stock: Object.fromEntries(Object.entries(x.stock).filter(([k, v]) => v.trim() !== "" && (k === "" ? !colours.length : colours.some((c) => c.name.trim() === k))).map(([k, v]) => [k, Number(v)])),
           images: Object.fromEntries(Object.entries(x.images).filter(([k, u]) => media.some((m) => m.url === u) && (k === "" ? !colours.length : colours.some((c) => c.name.trim() === k)))) })),
+        options: opts.map((o) => ({ name: o.name.trim(), choices: o.choices.filter((c) => c.name.trim()).map((c) => ({ name: c.name.trim(), extra: Number(c.extra) || 0 })) }))
+          .filter((o) => o.name || o.choices.length),
         details: details.filter((d) => d.title.trim() && d.body.trim()),
         features,
         media,
@@ -150,15 +160,17 @@ export default function ProductForm({ product, categories, uploads }: { product:
       </div>
       <fieldset className="rounded-2xl border border-line bg-surface p-4">
         <legend className="px-1 text-sm font-semibold text-ink-2">{Opt}s</legend>
-        <p className="mb-3 text-xs text-ink-3">Optional. Add {opt}s if customers can choose one. {packs.length ? "Stock is set for each option below." : `Each ${opt} has its own stock (empty = no limit, 0 = sold out).`} {images.length ? `Tap a photo under a ${opt} to show it when that ${opt} is picked.` : `Upload photos below, then you can link a photo to each ${opt}.`}</p>
+        <p className="mb-3 text-xs text-ink-3">Optional. Add {opt}s if customers can choose one. {packs.length ? "Stock is set for each option below." : `Each ${opt} has its own stock (empty = no limit, 0 = sold out).`} &quot;Extra&quot; is added to the price when that {opt} is picked (empty = same price). {images.length ? `Tap a photo under a ${opt} to show it when that ${opt} is picked.` : `Upload photos below, then you can link a photo to each ${opt}.`}</p>
         {colours.length > 0 && (
           <div className="mb-3 space-y-3">
+            <div className="grid grid-cols-[3rem_minmax(0,1fr)_5.5rem_5.5rem_auto] gap-2 text-xs text-ink-3"><span /><span>Name</span><span>Stock</span><span>Extra (USD)</span><span className="w-14" /></div>
             {colours.map((c, i) => (
               <div key={i}>
-              <div className="grid grid-cols-[3rem_minmax(0,1fr)_7.5rem_auto] items-center gap-2">
+              <div className="grid grid-cols-[3rem_minmax(0,1fr)_5.5rem_5.5rem_auto] items-center gap-2">
                 <input type="color" aria-label={`${Opt} swatch`} value={c.hex} onChange={(e) => setColour(i, { hex: e.target.value })} className="h-10 w-12 cursor-pointer rounded-lg border border-line bg-surface p-1" />
                 <input className="input" placeholder={`${Opt} name`} aria-label={`${Opt} name`} value={c.name} maxLength={40} onChange={(e) => setColour(i, { name: e.target.value })} />
                 <input className="input" type="number" min="0" step="1" inputMode="numeric" placeholder={packs.length ? "See packaging" : "No limit"} disabled={packs.length > 0} aria-label={`Stock for ${c.name || `this ${opt}`}`} value={packs.length ? "" : c.stock} onChange={(e) => setColour(i, { stock: e.target.value })} />
+                <input className="input" type="number" min="0" step="0.01" inputMode="decimal" placeholder="+ $0" aria-label={`Extra price for ${c.name || `this ${opt}`}`} value={c.extra} onChange={(e) => setColour(i, { extra: e.target.value })} />
                 <button type="button" className="px-2 text-sm text-bad" onClick={() => setColours(colours.filter((_, j) => j !== i))}>Remove</button>
               </div>
               {images.length > 0 && (
@@ -232,6 +244,38 @@ export default function ProductForm({ product, categories, uploads }: { product:
         <div className="flex flex-wrap gap-2">
           {!packs.length && !print && <button type="button" onClick={() => setPacks([{ name: "1 gel", price: f.price, units: "1", images: {}, stock: {} }, { name: "Box of 24", price: "", units: "24", images: {}, stock: {} }])} className="rounded-full border border-line px-3 py-1 text-sm hover:border-ink-3">1 gel + Box of 24</button>}
           <button type="button" onClick={() => setPacks([...packs, { name: "", price: "", units: "1", images: {}, stock: {} }])} className="rounded-full border border-dashed border-ink-3 px-3 py-1 text-sm">+ Add packaging</button>
+        </div>
+      </fieldset>
+
+      <fieldset className="rounded-2xl border border-line bg-surface p-4">
+        <legend className="px-1 text-sm font-semibold text-ink-2">Options that change the price</legend>
+        <p className="mb-3 text-xs text-ink-3">Optional. For choices like filament type: add an option (e.g. &quot;Filament type&quot;), then its choices with what each adds to the price, e.g. PLA +0, PETG +3, Silk PLA +4. The customer must pick one choice of each option and sees the price update. Put the cheapest choice at +0 so the price above stays the starting price.</p>
+        {opts.length > 0 && (
+          <div className="mb-3 space-y-3">
+            {opts.map((o, i) => (
+              <div key={i} className="rounded-xl border border-line p-3">
+                <div className="flex items-center gap-2">
+                  <input className="input flex-1" placeholder="Option name, e.g. Filament type" aria-label="Option name" maxLength={40} value={o.name} onChange={(e) => setOpt(i, { name: e.target.value })} />
+                  <button type="button" className="px-2 text-sm text-bad" onClick={() => setOpts(opts.filter((_, j) => j !== i))}>Remove</button>
+                </div>
+                <div className="mt-2 space-y-2">
+                  <div className="grid grid-cols-[minmax(0,1fr)_6rem_auto] gap-2 text-xs text-ink-3"><span>Choice</span><span>Extra (USD)</span><span className="w-14" /></div>
+                  {o.choices.map((c, k) => (
+                    <div key={k} className="grid grid-cols-[minmax(0,1fr)_6rem_auto] items-center gap-2">
+                      <input className="input" placeholder="e.g. PETG" aria-label={`Choice ${k + 1} of ${o.name || "this option"}`} maxLength={40} value={c.name} onChange={(e) => setChoice(i, k, { name: e.target.value })} />
+                      <input className="input" type="number" min="0" step="0.01" inputMode="decimal" placeholder="+ $0" aria-label={`Extra price for ${c.name || "this choice"}`} value={c.extra} onChange={(e) => setChoice(i, k, { extra: e.target.value })} />
+                      <button type="button" className="w-14 px-2 text-sm text-bad" onClick={() => setOpt(i, { choices: o.choices.filter((_, j) => j !== k) })}>Remove</button>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={() => setOpt(i, { choices: [...o.choices, { name: "", extra: "" }] })} className="mt-2 rounded-full border border-dashed border-ink-3 px-3 py-1 text-sm">+ Add a choice</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          {!opts.some((o) => o.name.toLowerCase() === "filament type") && <button type="button" onClick={() => setOpts([...opts, { ...FILAMENT_PRESET, choices: FILAMENT_PRESET.choices.map((c) => ({ ...c })) }])} className="rounded-full border border-line px-3 py-1 text-sm hover:border-ink-3">Filament type (PLA, PETG, Silk PLA)</button>}
+          <button type="button" onClick={() => setOpts([...opts, { name: "", choices: [{ name: "", extra: "" }] }])} className="rounded-full border border-dashed border-ink-3 px-3 py-1 text-sm">+ Add an option</button>
         </div>
       </fieldset>
 

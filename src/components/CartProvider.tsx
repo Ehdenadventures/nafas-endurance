@@ -12,6 +12,8 @@ export type CartLine = {
   personalization: string;
   colour?: string;
   package?: string;
+  /** Price options picked, e.g. Filament type: PETG. */
+  options?: { name: string; value: string }[];
   /** "print" for 3D printed items (changes the words shown). */
   kind?: string;
 };
@@ -50,7 +52,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [lines, ready]);
 
   const add = useCallback<Cart["add"]>((l, qty = 1) => {
-    const key = `${l.productId}::${l.colour ?? ""}::${l.package ?? ""}::${l.personalization.trim()}`;
+    const picks = (l.options ?? []).map((o) => `${o.name}=${o.value}`).join("|");
+    const key = `${l.productId}::${l.colour ?? ""}::${l.package ?? ""}::${l.personalization.trim()}${picks ? `::${picks}` : ""}`;
     setLines((cur) => {
       const found = cur.find((x) => x.key === key);
       if (found) return cur.map((x) => (x.key === key ? { ...x, qty: Math.min(99, x.qty + qty) } : x));

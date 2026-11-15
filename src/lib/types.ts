@@ -1,7 +1,18 @@
 export type Media = { type: "image" | "video"; url: string };
 
 /** A flavour of a product. stock null = no limit. */
-export type Variant = { name: string; hex: string; stock: number | null; /** photo shown when this colour is picked */ image?: string };
+export type Variant = {
+  name: string; hex: string; stock: number | null;
+  /** photo shown when this colour is picked */ image?: string;
+  /** Added to the price when this colour is picked, e.g. 2 for a silk or glow filament. Missing = 0. */
+  extra?: number;
+};
+
+/** One choice of an option, e.g. "PETG" adding 3 to the price. */
+export type OptionChoice = { name: string; extra: number };
+/** A choice that changes the price, e.g. "Filament type": PLA (+0), PETG (+3), Silk PLA (+4).
+ *  The customer picks one choice of every option. */
+export type ProductOption = { name: string; choices: OptionChoice[] };
 
 /** A way the product is sold, e.g. "1 gel" or "Box of 24", with its own price.
  *  units = how many single pieces it takes from stock. */
@@ -77,6 +88,8 @@ export type Product = {
   variants: Variant[];
   /** Ways it is sold with their own price. Empty = sold one by one at `price`. */
   packages: Package[];
+  /** Choices that add to the price, e.g. filament type. Empty = none. */
+  options: ProductOption[];
   /** Information tabs. */
   details: Detail[];
   features: FeatureKey[];
@@ -95,7 +108,12 @@ export type OrderItem = {
   package?: string;
   /** Single pieces per item, used for stock. Missing = 1. */
   units?: number;
+  /** Price options picked, e.g. [{ name: "Filament type", value: "PETG" }]. */
+  options?: PickedOption[];
 };
+
+/** One price option the customer picked. */
+export type PickedOption = { name: string; value: string };
 
 /** An Instagram post that customers can shop from the website. */
 export type Post = {

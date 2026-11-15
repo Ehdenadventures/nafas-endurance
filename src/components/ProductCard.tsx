@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Product } from "@/lib/types";
 import { money } from "@/lib/site";
-import { isSoldOut } from "@/lib/stock";
+import { isSoldOut, priceRange } from "@/lib/stock";
 import { CubeIcon } from "./Icons";
 
 export function cover(p: Product) {
@@ -31,7 +31,7 @@ export default function ProductCard({ p }: { p: Product }) {
       <div className="flex flex-1 flex-col gap-1 p-3">
         <h3 className="text-sm font-semibold leading-snug">{p.name}</h3>
         <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-          <p className="font-bold text-accent">{p.packages.length > 1 && <span className="text-xs font-normal text-ink-3">from </span>}{money(p.price)}</p>
+          <p className="font-bold text-accent">{priceRange(p)[0] < priceRange(p)[1] && <span className="text-xs font-normal text-ink-3">from </span>}{money(priceRange(p)[0])}</p>
           {p.variants.length > 1 && (
             <span className="flex -space-x-1" aria-label={`${p.variants.length} ${p.kind === "print" ? "colours" : "flavours"}`}>
               {p.variants.slice(0, 5).map((v) => <span key={v.name} className="h-3.5 w-3.5 rounded-full border border-surface" style={{ background: v.hex }} />)}

@@ -1,4 +1,4 @@
-import { FEATURES, type Detail, type FeatureKey, type Package, type Product, type Variant } from "./types";
+import { FEATURES, type Detail, type FeatureKey, type Package, type PickedOption, type Product, type ProductOption, type Variant } from "./types";
 
 /** Safe to use in the browser and on the server. null = no limit. */
 export const hasColours = (p: Pick<Product, "variants">) => p.variants.length > 0;
@@ -38,7 +38,11 @@ export function cleanVariants(raw: unknown): Variant[] {
     const s = r?.stock;
     const stock = s === null || s === undefined || s === "" ? null : Math.max(0, Math.floor(Number(s)) || 0);
     const image = typeof r?.image === "string" && /^https?:\/\//.test(r.image) ? r.image : undefined;
-    out.push(image ? { name, hex, stock, image } : { name, hex, stock });
+    const extra = money2(r?.extra);
+    const v: Variant = { name, hex, stock };
+    if (image) v.image = image;
+    if (extra > 0) v.extra = extra;
+    out.push(v);
   }
   return out.slice(0, 30);
 }
@@ -88,9 +92,58 @@ export function photoFor(p: Pick<Product, "variants" | "packages">, colour: stri
   return imgs?.[colour] ?? imgs?.[""] ?? p.variants.find((v) => v.name === colour)?.image;
 }
 
-/** Lowest and highest price a customer can pay for one item. */
-export function priceRange(p: Pick<Product, "price" | "packages">): [number, number] {
-  if (!p.packages.length) return [p.price, p.price];
-  const prices = p.packages.map((x) => x.price);
-  return [Math.min(...prices), Math.max(...prices)];
+/** A price extra: 0 or more, rounded to cents. Anything else = 0. */
+function money2(v: unknown) {
+  const n = Math.round(Number(v) * 100) / 100;
+  return n > 0 && n < 100000 ? n : 0;
 }
+
+/** Price options (e.g. Filament type: PLA +0, PETG +3). Options without choices are dropped. */
+export function cleanOptions(raw: unknown): ProductOption[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: ProductOption[] = [];
+  for (const r of raw as Record<string, unknown>[]) {
+    const name = String(r?.name ?? "").trim().slice(0, 40);
+    if (!name || seen.has(name.toLowerCase())) continue;
+    const names = new Set<string>();
+    const choices = (Array.isArray(r?.choices) ? (r.choices as Record<string, unknown>[]) : [])
+      .map((c) => ({ name: String(c?.name ?? "").trim().slice(0, 40), extra: money2(c?.extra) }))
+      .filter((c) => c.name && !names.has(c.name.toLowerCase()) && names.add(c.name.toLowerCase()))
+      .slice(0, 20);
+    if (!choices.length) continue;
+    seen.add(name.toLowerCase());
+    out.push({ name, choices });
+  }
+  return out.slice(0, 5);
+}
+
+type Priced = Pick<Product, "price" | "packages" | "variants"> & { options?: ProductOption[] };
+
+/** Price of one item for the picks: packaging price (or the product price), plus the colour's extra,
+ *  plus the extra of each option picked. Returns null if an option is missing or unknown. */
+export function unitPrice(p: Priced, colour: string | undefined, pack: string | undefined, picks: PickedOption[] = []): number | null {
+  const pk = p.packages.find((x) => x.name === pack);
+  let price = pk ? pk.price : p.price;
+  price += p.variants.find((v) => v.name === colour)?.extra ?? 0;
+  for (const o of p.options ?? []) {
+    const c = o.choices.find((x) => x.name === picks.find((k) => k.name === o.name)?.value);
+    if (!c) return null;
+    price += c.extra;
+  }
+  return Math.round(price * 100) / 100;
+}
+
+/** Lowest and highest price a customer can pay for one item. */
+export function priceRange(p: Priced): [number, number] {
+  const prices = p.packages.length ? p.packages.map((x) => x.price) : [p.price];
+  const extras = p.variants.map((v) => v.extra ?? 0);
+  let low = Math.min(...prices) + (extras.length ? Math.min(...extras) : 0);
+  let high = Math.max(...prices) + (extras.length ? Math.max(...extras) : 0);
+  for (const o of p.options ?? []) {
+    low += Math.min(...o.choices.map((c) => c.extra));
+    high += Math.max(...o.choices.map((c) => c.extra));
+  }
+  return [Math.round(low * 100) / 100, Math.round(high * 100) / 100];
+}
+
