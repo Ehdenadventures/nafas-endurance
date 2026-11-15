@@ -1,7 +1,7 @@
 import "server-only";
 import seed from "./seed.json";
 import { db } from "./supabase";
-import { cleanDetails, cleanFeatures, cleanPackages, cleanVariants } from "./stock";
+import { cleanDetails, cleanFeatures, cleanOptions, cleanPackages, cleanVariants } from "./stock";
 import type { BannerSettings, Category, SlideBackground, Order, OrderItem, OrderStatus, Post, Product } from "./types";
 
 /*
@@ -37,6 +37,7 @@ function demo(): Demo {
       stock: null,
       variants: [],
       packages: [],
+      options: [],
       details: [],
       features: [],
       media: (p.media ?? []) as Product["media"],
@@ -52,6 +53,7 @@ const num = <T extends { price?: unknown; stock?: unknown; variants?: unknown; p
   ...r,
   variants: cleanVariants(r.variants),
   packages: cleanPackages(r.packages),
+  options: cleanOptions((r as { options?: unknown }).options),
   details: cleanDetails(r.details),
   features: cleanFeatures(r.features),
   kind: (r as { kind?: unknown }).kind === "print" ? ("print" as const) : ("nutrition" as const),
@@ -160,13 +162,21 @@ export async function saveProduct(p: Omit<Product, "id"> & { id?: string }) {
   }
   const { id, ...all } = p;
   const write = (row: Record<string, unknown>) => (id ? s.from("products").update(row).eq("id", id) : s.from("products").insert(row));
-  let { error } = await write(all);
-  // Before migration 009 there is no "kind" column: nutrition products still save, 3D prints need the update.
-  if (error && /kind/.test(error.message) && /(column|schema cache)/i.test(error.message)) {
-    if (all.kind === "print")
-      throw new Error("The database needs a small update first: in Supabase open SQL Editor, paste supabase/migrations/009_product_kind.sql and press Run. Then save again.");
-    const { kind: _k, ...rest } = all; // eslint-disable-line @typescript-eslint/no-unused-vars
-    ({ error } = await write(rest));
+  // Older databases may miss the "kind" (migration 009) or "options" (migration 010) column.
+  // Products that don't use them still save; using them asks for the update.
+  const row: Record<string, unknown> = { ...all };
+  let { error } = await write(row);
+  for (let tries = 0; error && tries < 2 && /(column|schema cache)/i.test(error.message); tries++) {
+    if (/kind/.test(error.message) && "kind" in row) {
+      if (all.kind === "print")
+        throw new Error("The database needs a small update first: in Supabase open SQL Editor, paste supabase/migrations/009_product_kind.sql and press Run. Then save again.");
+      delete row.kind;
+    } else if (/options/.test(error.message) && "options" in row) {
+      if (all.options?.length)
+        throw new Error("To add price options (like filament type), the database needs a small update first: in Supabase open SQL Editor, paste supabase/migrations/010_price_options.sql and press Run. Then save again.");
+      delete row.options;
+    } else break;
+    ({ error } = await write(row));
   }
   if (error && /(packages|details|features)/.test(error.message) && /(column|schema cache)/i.test(error.message))
     throw new Error("The database needs a small update first: in Supabase open SQL Editor, paste supabase/migrations/005_product_details.sql and press Run. Then save again.");

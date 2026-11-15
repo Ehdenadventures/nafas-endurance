@@ -32,7 +32,7 @@ export default function CheckoutForm({ deliveryFee }: { deliveryFee: number }) {
         city: String(fd.get("city")),
         address: String(fd.get("address")),
         notes: String(fd.get("notes") ?? ""),
-        items: lines.map((l) => ({ productId: l.productId, qty: l.qty, personalization: l.personalization, colour: l.colour, package: l.package })),
+        items: lines.map((l) => ({ productId: l.productId, qty: l.qty, personalization: l.personalization, colour: l.colour, package: l.package, options: l.options })),
       });
       if (!res.ok) return setError(res.error);
       clear();
@@ -58,7 +58,7 @@ export default function CheckoutForm({ deliveryFee }: { deliveryFee: number }) {
         <ul className="mt-3 space-y-2 text-sm">
           {lines.map((l) => (
             <li key={l.key} className="flex justify-between gap-2">
-              <span>{l.qty} × {l.name}{l.colour && <span className="block text-xs text-ink-3">{optionLabel(l.kind)}: {l.colour}</span>}{l.package && <span className="block text-xs text-ink-3">{l.kind === "print" ? "Size" : "Packaging"}: {l.package}</span>}{l.personalization && <span className="block text-xs text-ink-3">Name: {l.personalization}</span>}</span>
+              <span>{l.qty} × {l.name}{l.colour && <span className="block text-xs text-ink-3">{optionLabel(l.kind)}: {l.colour}</span>}{l.package && <span className="block text-xs text-ink-3">{l.kind === "print" ? "Size" : "Packaging"}: {l.package}</span>}{l.options?.map((o) => <span key={o.name} className="block text-xs text-ink-3">{o.name}: {o.value}</span>)}{l.personalization && <span className="block text-xs text-ink-3">Name: {l.personalization}</span>}</span>
               <span className="font-semibold">{money(l.qty * l.price)}</span>
             </li>
           ))}

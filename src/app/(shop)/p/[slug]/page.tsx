@@ -60,7 +60,7 @@ export default async function ProductPage({ params }: Props) {
           {isSoldOut(p) ? (
             <p className="mt-6 rounded-xl bg-surface-2 px-4 py-3 font-semibold">{print ? "Sold out for now. Message us on WhatsApp and we can print one for you." : "Sold out for now. Message us on WhatsApp and we will tell you when it is back."}</p>
           ) : (
-            <AddToCart productId={p.id} slug={p.slug} name={p.name} price={p.price} image={cover(p)} personalizable={p.personalizable} stock={p.stock} colours={p.variants} packages={p.packages} kind={p.kind} />
+            <AddToCart productId={p.id} slug={p.slug} name={p.name} price={p.price} image={cover(p)} personalizable={p.personalizable} stock={p.stock} colours={p.variants} packages={p.packages} options={p.options} kind={p.kind} />
           )}
           <ul className="mt-6 space-y-1 text-sm text-ink-2">
             <li>• Pay cash on delivery</li>

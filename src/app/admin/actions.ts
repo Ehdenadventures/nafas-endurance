@@ -7,8 +7,8 @@ import {
   takeStock, updateOrder, categoryTree, getCategories, saveBanner,
 } from "@/lib/data";
 import { db, MEDIA_BUCKET } from "@/lib/supabase";
-import { cleanDetails, cleanFeatures, cleanPackages, cleanVariants } from "@/lib/stock";
-import { ORDER_STATUSES, type BannerSettings, type Detail, type FeatureKey, type Media, type OrderStatus, type Package, type Variant } from "@/lib/types";
+import { cleanDetails, cleanFeatures, cleanOptions, cleanPackages, cleanVariants } from "@/lib/stock";
+import { ORDER_STATUSES, type BannerSettings, type Detail, type FeatureKey, type Media, type OrderStatus, type Package, type ProductOption, type Variant } from "@/lib/types";
 import { sendToWakilni } from "@/lib/wakilni";
 
 const slugify = (s: string) =>
@@ -47,6 +47,7 @@ export type ProductInput = {
   stock: number | null;
   variants: Variant[];
   packages: Package[];
+  options?: ProductOption[];
   details: Detail[];
   features: FeatureKey[];
   media: Media[];
@@ -62,6 +63,11 @@ export async function saveProductAction(p: ProductInput): Promise<{ error?: stri
   // With packaging options, the product's own price is the cheapest one (used on product cards).
   const price = packages.length ? Math.min(...packages.map((x) => x.price)) : p.price;
   if (!(price >= 0)) return { error: "Price must be 0 or more." };
+  const options = cleanOptions(p.options);
+  if ((p.options || []).some((o) => o.name.trim() && !o.choices.some((c) => c.name.trim())))
+    return { error: "Every price option needs at least one choice, e.g. PLA." };
+  if ((p.options || []).some((o) => !o.name.trim() && o.choices.some((c) => c.name.trim())))
+    return { error: "Give every price option a name, e.g. Filament type." };
   const stock = p.stock === null ? null : Math.floor(Number(p.stock));
   if (stock !== null && !(stock >= 0)) return { error: "Stock must be 0 or more, or empty for no limit." };
   const clash = (await getProducts({ includeHidden: true })).find((x) => x.slug === slug && x.id !== p.id);
@@ -74,7 +80,7 @@ export async function saveProductAction(p: ProductInput): Promise<{ error?: stri
       id: p.id, name, slug, description: p.description.trim(), price: Math.round(price * 100) / 100,
       category_id: p.category_id || null, active: !!p.active, personalizable: !!p.personalizable, kind: p.kind === "print" ? "print" : "nutrition",
       sort: Math.floor(p.sort) || 0, stock, variants: cleanVariants(p.variants),
-      packages, details: cleanDetails(p.details).filter((d) => d.body), features: p.kind === "print" ? [] : cleanFeatures(p.features), media,
+      packages, options, details: cleanDetails(p.details).filter((d) => d.body), features: p.kind === "print" ? [] : cleanFeatures(p.features), media,
     });
   } catch (e) {
     return { error: (e as Error).message };

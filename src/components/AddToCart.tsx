@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { optionLabel, type Package, type Variant } from "@/lib/types";
+import { optionLabel, type Package, type ProductOption, type Variant } from "@/lib/types";
 import { money } from "@/lib/site";
-import { packStock, photoFor } from "@/lib/stock";
+import { packStock, photoFor, unitPrice } from "@/lib/stock";
 import { useCart } from "./CartProvider";
 import { useColour } from "./ColourContext";
 
@@ -13,6 +13,8 @@ type Props = {
   stock: number | null;
   colours: Variant[];
   packages: Package[];
+  /** Choices that add to the price, e.g. filament type. */
+  options?: ProductOption[];
   /** "print" for 3D printed items: says Colour and Size instead of Flavour and Packaging. */
   kind?: string;
 };
@@ -29,9 +31,14 @@ export default function AddToCart(p: Props) {
   const localPack = useState(p.packages[0]?.name ?? "");
   const [packName, setPackName] = shared ? [shared.pack, shared.setPack] : localPack;
   const pack = p.packages.find((x) => x.name === packName);
-  const price = pack ? pack.price : p.price;
+  const options = p.options ?? [];
+  // Start on the first choice of every price option (the cheapest one, by convention).
+  const [picks, setPicks] = useState<Record<string, string>>(() => Object.fromEntries(options.map((o) => [o.name, o.choices[0]?.name ?? ""])));
+  const picked = options.map((o) => ({ name: o.name, value: picks[o.name] ?? "" }));
 
   const chosen = p.colours.find((c) => c.name === colour);
+  const price = unitPrice({ price: p.price, packages: p.packages, variants: p.colours, options }, colour, packName, picked) ?? p.price;
+  const priceChanges = p.packages.length > 0 || options.length > 0 || p.colours.some((c) => c.extra);
   const flavourKey = p.colours.length ? colour : "";
   // With packaging, each packaging has its own stock per flavour.
   const leftFor = (pk: Package | undefined, flav: string) =>
@@ -42,7 +49,7 @@ export default function AddToCart(p: Props) {
   const left = p.colours.length && !chosen ? 0 : leftFor(pack, flavourKey);
   const max = Math.min(99, left ?? 99);
   const needsText = p.personalizable && !text.trim();
-  const blocked = needsText || (p.colours.length > 0 && !chosen) || (p.packages.length > 0 && !pack) || max < 1;
+  const blocked = needsText || picked.some((k) => !k.value) || (p.colours.length > 0 && !chosen) || (p.packages.length > 0 && !pack) || max < 1;
 
   return (
     <div className="mt-6 space-y-4">
@@ -75,6 +82,7 @@ export default function AddToCart(p: Props) {
                 >
                   <span className="h-5 w-5 rounded-full border border-line" style={{ background: c.hex }} />
                   {c.name}
+                  {!!c.extra && <span className="text-xs text-ink-3">+{money(c.extra)}</span>}
                 </button>
               );
             })}
@@ -111,7 +119,35 @@ export default function AddToCart(p: Props) {
           )}
         </fieldset>
       )}
-      {p.packages.length > 0 && <p className="text-2xl font-bold text-accent" aria-live="polite">{money(price * qty)}</p>}
+      {options.map((o) => (
+        <fieldset key={o.name}>
+          <legend className="mb-2 text-sm font-semibold">
+            {o.name}: <span className="font-normal text-ink-2">{picks[o.name] || "choose one"}</span>
+          </legend>
+          <div className="flex flex-wrap gap-2">
+            {o.choices.map((c) => {
+              const on = picks[o.name] === c.name;
+              return (
+                <button
+                  key={c.name}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => { setPicks((cur) => ({ ...cur, [o.name]: c.name })); setAdded(false); }}
+                  className={`rounded-xl border px-3 py-2 text-left text-sm transition ${on ? "border-accent ring-2 ring-accent" : "border-line hover:border-ink-3"}`}
+                >
+                  <span className="block font-semibold">{c.name}</span>
+                  <span className="block text-xs text-ink-3">{c.extra ? `+${money(c.extra)}` : "Included"}</span>
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      ))}
+      {priceChanges && (
+        <p className="text-2xl font-bold text-accent" aria-live="polite">
+          {money(price * qty)}{qty > 1 && <span className="ml-2 text-sm font-normal text-ink-3">{money(price)} each</span>}
+        </p>
+      )}
       {p.personalizable && (
         <div className="field">
           <label htmlFor="pers">{p.kind === "print" ? "Name to print" : "Name or note"}</label>
@@ -129,7 +165,7 @@ export default function AddToCart(p: Props) {
           className="btn btn-primary flex-1"
           disabled={blocked}
           onClick={() => {
-            add({ productId: p.productId, slug: p.slug, name: p.name, price, image: photoFor({ variants: p.colours, packages: p.packages }, colour, packName) ?? p.image, personalization: text, colour: chosen?.name, package: pack?.name, kind: p.kind }, qty);
+            add({ productId: p.productId, slug: p.slug, name: p.name, price, image: photoFor({ variants: p.colours, packages: p.packages }, colour, packName) ?? p.image, personalization: text, colour: chosen?.name, package: pack?.name, options: picked.length ? picked : undefined, kind: p.kind }, qty);
             setAdded(true);
           }}
         >
