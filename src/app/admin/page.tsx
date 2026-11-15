@@ -4,6 +4,7 @@ import { money } from "@/lib/site";
 import { ORDER_STATUSES } from "@/lib/types";
 import { wakilniConfigured, wakilniMissing } from "@/lib/wakilni";
 import AdminNav from "./AdminNav";
+import DeleteOrderButton from "./DeleteOrderButton";
 import { deleteOrderAction, sendToWakilniAction, setOrderStatusAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +60,7 @@ export default async function OrdersPage() {
                   <form action={sendToWakilniAction}><input type="hidden" name="id" value={o.id} /><button className="btn btn-primary py-1.5 text-sm">Send to Wakilni</button></form>
                 )}
                 {["cancelled", "delivered"].includes(o.status) && (
-                  <form action={deleteOrderAction} className="ml-auto"><input type="hidden" name="id" value={o.id} /><button className="text-sm text-ink-3 underline hover:text-bad">Delete order</button></form>
+                  <form action={deleteOrderAction} className="ml-auto"><input type="hidden" name="id" value={o.id} /><DeleteOrderButton number={o.number} /></form>
                 )}
               </div>
             </article>
