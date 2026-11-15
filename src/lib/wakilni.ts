@@ -16,7 +16,11 @@ const cfg = () => ({
   secret: process.env.WAKILNI_SECRET || "",
   // Pickup: the 3D PrintLab shop, Zgharta main street (Slayib), ground floor. Both shops ship from here.
   // Each value can still be overridden in Vercel with the WAKILNI_PICKUP_* variables.
-  pickupLocationId: process.env.WAKILNI_PICKUP_LOCATION_ID ? Number(process.env.WAKILNI_PICKUP_LOCATION_ID) : undefined,
+  // 21286 = the shop's pickup location in the dev.wakilni.com test account. The real wakilni.com account
+  // will have its own number: set WAKILNI_PICKUP_LOCATION_ID when switching to https://api.wakilni.com.
+  pickupLocationId: process.env.WAKILNI_PICKUP_LOCATION_ID
+    ? Number(process.env.WAKILNI_PICKUP_LOCATION_ID)
+    : (process.env.WAKILNI_BASE_URL || "https://api-dev.wakilni.com").includes("api-dev") ? 21286 : undefined,
   pickupArea: process.env.WAKILNI_PICKUP_AREA || "Zgharta",
   pickupLat: Number(process.env.WAKILNI_PICKUP_LAT || 34.397375),
   pickupLng: Number(process.env.WAKILNI_PICKUP_LNG || 35.894752),
