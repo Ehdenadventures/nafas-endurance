@@ -56,7 +56,12 @@ function call(method: string, url: string, body?: unknown, token?: string): Prom
             json = { raw: text };
           }
           if ((res.statusCode ?? 500) >= 400)
-            reject(new Error(`Wakilni ${res.statusCode}: ${String(json.message ?? text).slice(0, 300)}`));
+            {
+            // Wakilni puts the reason for a 422 in "errors" (field -> messages); show it next to the message.
+            const details = json.errors ?? json.error ?? json.data;
+            const extra = details && typeof details === "object" ? ` ${JSON.stringify(details)}` : "";
+            reject(new Error(`Wakilni ${res.statusCode}: ${String(json.message ?? text)}${extra}`.slice(0, 500)));
+          }
           else resolve(json);
         });
       },
