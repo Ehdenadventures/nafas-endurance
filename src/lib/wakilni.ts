@@ -23,7 +23,10 @@ const cfg = () => ({
   pickupFloor: Number(process.env.WAKILNI_PICKUP_FLOOR || 0),
 });
 
-export const wakilniConfigured = () => Boolean(process.env.WAKILNI_KEY && process.env.WAKILNI_SECRET);
+export const wakilniConfigured = () => wakilniMissing().length === 0;
+/** Which Wakilni settings this deployment can't see (empty values count as missing). */
+export const wakilniMissing = () =>
+  (["WAKILNI_KEY", "WAKILNI_SECRET"] as const).filter((k) => !(process.env[k] ?? "").trim());
 export const wakilniAutoSend = () => wakilniConfigured() && process.env.WAKILNI_AUTO_SEND === "true";
 
 // Wakilni's auth endpoint is a GET with a JSON body, which fetch() refuses, so use node:https directly.
