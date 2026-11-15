@@ -16,7 +16,11 @@ const cfg = () => ({
   secret: process.env.WAKILNI_SECRET || "",
   // Pickup: the 3D PrintLab shop, Zgharta main street (Slayib), ground floor. Both shops ship from here.
   // Each value can still be overridden in Vercel with the WAKILNI_PICKUP_* variables.
-  pickupLocationId: process.env.WAKILNI_PICKUP_LOCATION_ID ? Number(process.env.WAKILNI_PICKUP_LOCATION_ID) : undefined,
+  // 21286 = the shop's pickup location in the dev.wakilni.com test account. The real wakilni.com account
+  // will have its own number: set WAKILNI_PICKUP_LOCATION_ID when switching to https://api.wakilni.com.
+  pickupLocationId: process.env.WAKILNI_PICKUP_LOCATION_ID
+    ? Number(process.env.WAKILNI_PICKUP_LOCATION_ID)
+    : (process.env.WAKILNI_BASE_URL || "https://api-dev.wakilni.com").includes("api-dev") ? 21286 : undefined,
   pickupArea: process.env.WAKILNI_PICKUP_AREA || "Zgharta",
   pickupLat: Number(process.env.WAKILNI_PICKUP_LAT || 34.397375),
   pickupLng: Number(process.env.WAKILNI_PICKUP_LNG || 35.894752),
@@ -56,7 +60,12 @@ function call(method: string, url: string, body?: unknown, token?: string): Prom
             json = { raw: text };
           }
           if ((res.statusCode ?? 500) >= 400)
-            reject(new Error(`Wakilni ${res.statusCode}: ${String(json.message ?? text).slice(0, 300)}`));
+            {
+            // Wakilni puts the reason for a 422 in "errors" (field -> messages); show it next to the message.
+            const details = json.errors ?? json.error ?? json.data;
+            const extra = details && typeof details === "object" ? ` ${JSON.stringify(details)}` : "";
+            reject(new Error(`Wakilni ${res.statusCode}: ${String(json.message ?? text)}${extra}`.slice(0, 500)));
+          }
           else resolve(json);
         });
       },
