@@ -4,7 +4,7 @@ import { money } from "@/lib/site";
 import { ORDER_STATUSES } from "@/lib/types";
 import { wakilniConfigured, wakilniMissing } from "@/lib/wakilni";
 import AdminNav from "./AdminNav";
-import { sendToWakilniAction, setOrderStatusAction } from "./actions";
+import { deleteOrderAction, sendToWakilniAction, setOrderStatusAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export default async function OrdersPage() {
                   <p className="text-xl font-bold">{money(o.total)}</p>
                   <form action={setOrderStatusAction} className="mt-2 flex items-center gap-2">
                     <input type="hidden" name="id" value={o.id} />
-                    <select name="status" defaultValue={o.status} className="input py-1.5 text-sm">
+                    <select key={o.status} name="status" defaultValue={o.status} className="input py-1.5 text-sm">
                       {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <button className="btn py-1.5 text-sm">Save</button>
@@ -57,6 +57,9 @@ export default async function OrdersPage() {
                 {o.delivery_error && <span className="text-bad">{o.delivery_error}</span>}
                 {wak && o.delivery_status !== "sent" && o.status !== "cancelled" && (
                   <form action={sendToWakilniAction}><input type="hidden" name="id" value={o.id} /><button className="btn btn-primary py-1.5 text-sm">Send to Wakilni</button></form>
+                )}
+                {["cancelled", "delivered"].includes(o.status) && (
+                  <form action={deleteOrderAction} className="ml-auto"><input type="hidden" name="id" value={o.id} /><button className="text-sm text-ink-3 underline hover:text-bad">Delete order</button></form>
                 )}
               </div>
             </article>
