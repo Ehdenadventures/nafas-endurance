@@ -2,7 +2,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getOrders } from "@/lib/data";
 import { money } from "@/lib/site";
 import { ORDER_STATUSES } from "@/lib/types";
-import { wakilniConfigured } from "@/lib/wakilni";
+import { wakilniConfigured, wakilniMissing } from "@/lib/wakilni";
 import AdminNav from "./AdminNav";
 import { sendToWakilniAction, setOrderStatusAction } from "./actions";
 
@@ -22,7 +22,7 @@ export default async function OrdersPage() {
           <h1 className="text-2xl font-bold">Orders</h1>
           <p className="text-sm text-ink-3">{open.length} open · {orders.length} total · {money(open.reduce((a, o) => a + o.total, 0))} to collect</p>
         </div>
-        {!wak && <p className="mt-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink-2">Wakilni isn&apos;t connected yet. Add WAKILNI_KEY and WAKILNI_SECRET to send orders with one click.</p>}
+        {!wak && <p className="mt-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink-2">Wakilni isn&apos;t connected yet. This deployment can&apos;t see: <b>{wakilniMissing().join(" and ")}</b>. Add {wakilniMissing().length > 1 ? "them" : "it"} in Vercel → Settings → Environment Variables (Production), then redeploy.</p>}
         <div className="mt-4 space-y-3">
           {orders.map((o) => (
             <article key={o.id} className="rounded-2xl border border-line bg-surface p-4">
