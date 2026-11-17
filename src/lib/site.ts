@@ -7,7 +7,7 @@ export const site = {
   url: env("NEXT_PUBLIC_SITE_URL", "https://www.nafasendurance.com"),
   // WhatsApp number in international format without + or spaces, e.g. 96170123456
   whatsapp: env("NEXT_PUBLIC_WHATSAPP_NUMBER"),
-  instagram: env("NEXT_PUBLIC_INSTAGRAM", "nafas.endurance"),
+  instagram: env("NEXT_PUBLIC_INSTAGRAM", "nafasendurance"),
   facebook: env("NEXT_PUBLIC_FACEBOOK_URL"),
   tiktok: env("NEXT_PUBLIC_TIKTOK_URL"),
   currency: "USD",
